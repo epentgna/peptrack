@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-base text-ink font-display antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+
+  /* Área segura do iPhone (notch / home indicator). */
+  #root {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font-family: inherit;
+  }
+
+  input,
+  textarea,
+  select {
+    @apply bg-transparent outline-none;
+  }
+
+  ::placeholder {
+    @apply text-muted/60;
+  }
+
+  *:focus-visible {
+    @apply outline-none ring-2 ring-cyan/70 ring-offset-2 ring-offset-base;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-card border border-border rounded-card;
+  }
+
+  .eyebrow {
+    @apply font-mono text-[11px] tracking-[0.22em] text-cyan uppercase;
+  }
+
+  .sys-label {
+    @apply font-mono text-[10px] tracking-[0.2em] text-muted uppercase;
+  }
+
+  .stat-number {
+    @apply font-display font-semibold tabular-nums;
+  }
+
+  .btn-primary {
+    @apply w-full rounded-xl border border-cyan/70 bg-cyan/15 text-ink font-medium
+      py-3.5 px-4 shadow-glow transition-transform active:scale-[0.99]
+      flex items-center justify-center gap-2 min-h-[48px];
+  }
+
+  .btn-ghost {
+    @apply rounded-xl border border-border bg-white/[0.02] text-ink py-3 px-4
+      transition-colors active:bg-white/[0.05] min-h-[44px] flex items-center
+      justify-center gap-2;
+  }
+
+  .chip {
+    @apply font-mono text-[11px] tracking-wider uppercase px-3 py-2 rounded-lg
+      border border-border text-muted transition-colors min-h-[40px]
+      flex items-center justify-center;
+  }
+
+  .chip-active {
+    @apply border-cyan/70 bg-cyan/15 text-cyan shadow-glow-sm;
+  }
+
+  .field {
+    @apply w-full rounded-xl border border-border bg-white/[0.02] px-4 py-3
+      text-ink min-h-[48px];
+  }
+
+  .field-label {
+    @apply font-mono text-[10px] tracking-[0.18em] text-muted uppercase mb-1.5 block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
