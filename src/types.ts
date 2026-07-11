@@ -94,4 +94,7 @@ export interface Settings {
   units: 'metric'
   notificationsEnabled: boolean
   onboarded: boolean
+  goals?: string[]
+  experienceLevel?: string
+  frustrations?: string[]
 }
