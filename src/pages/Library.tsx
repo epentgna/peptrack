@@ -99,15 +99,104 @@ export default function Library() {
       <Disclaimer className="mt-6" />
 
       {adding && (
-        <CompoundForm
+        <AddCompoundModal
           onClose={() => setAdding(false)}
-          onSaved={(id) => {
+          onDone={(id) => {
             setAdding(false)
             navigate(`/biblioteca/${id}`)
           }}
         />
       )}
     </>
+  )
+}
+
+/**
+ * Modal de "Adicionar composto" com duas abas:
+ * - Da biblioteca: escolher um dos compostos já existentes.
+ * - Criar novo: cadastrar um composto do zero.
+ */
+function AddCompoundModal({
+  onClose,
+  onDone
+}: {
+  onClose: () => void
+  onDone: (id: number) => void
+}) {
+  const compounds = useLiveQuery(() => db.compounds.orderBy('name').toArray(), [])
+  const [tab, setTab] = useState<'pick' | 'create'>('pick')
+  const [query, setQuery] = useState('')
+
+  const filtered = useMemo(() => {
+    return (compounds ?? []).filter(
+      (c) => !query || c.name.toLowerCase().includes(query.toLowerCase())
+    )
+  }, [compounds, query])
+
+  return (
+    <Modal open onClose={onClose} eyebrow="ADD.COMPOUND" title="Adicionar composto">
+      {/* Abas */}
+      <div className="grid grid-cols-2 gap-1 p-1 rounded-xl border border-border bg-white/[0.02] mb-4">
+        {(
+          [
+            ['pick', 'Da biblioteca'],
+            ['create', 'Criar novo']
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`py-2 rounded-lg font-mono text-[11px] tracking-wider uppercase transition-colors ${
+              tab === key ? 'bg-cyan/15 text-cyan border border-cyan/50' : 'text-muted'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'pick' ? (
+        <div>
+          <input
+            className="field mb-3"
+            placeholder="Buscar na biblioteca…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            autoFocus
+          />
+          <div className="space-y-2 max-h-[46vh] overflow-y-auto -mx-1 px-1">
+            {filtered.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => c.id != null && onDone(c.id)}
+                className="card w-full p-3.5 flex items-center gap-3 text-left"
+              >
+                <span className="flex items-center justify-center h-9 w-9 rounded-lg border border-border shrink-0">
+                  <IconVial width={18} height={18} className="text-cyan" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-ink truncate">{c.name}</div>
+                  <div className="font-mono text-[10px] tracking-wider uppercase text-cyan">
+                    {c.category}
+                  </div>
+                </div>
+                <IconChevron width={16} height={16} className="text-muted shrink-0" />
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <p className="text-sm text-muted text-center py-6">
+                Nenhum composto encontrado.
+              </p>
+            )}
+          </div>
+          <p className="mt-3 text-[11px] text-muted/80">
+            Toque em um composto para ver a ficha e adicioná-lo ao seu protocolo.
+          </p>
+        </div>
+      ) : (
+        <CompoundFormFields onSaved={onDone} />
+      )}
+    </Modal>
   )
 }
 
@@ -128,6 +217,26 @@ export function CompoundForm({
   initial
 }: {
   onClose: () => void
+  onSaved: (id: number) => void
+  initial?: Compound
+}) {
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      eyebrow={initial ? 'EDIT.COMPOUND' : 'NEW.COMPOUND'}
+      title={initial ? 'Editar composto' : 'Novo composto'}
+    >
+      <CompoundFormFields onSaved={onSaved} initial={initial} />
+    </Modal>
+  )
+}
+
+/** Campos do formulário de composto (sem o wrapper de modal). */
+export function CompoundFormFields({
+  onSaved,
+  initial
+}: {
   onSaved: (id: number) => void
   initial?: Compound
 }) {
@@ -168,13 +277,7 @@ export function CompoundForm({
   }
 
   return (
-    <Modal
-      open
-      onClose={onClose}
-      eyebrow={initial ? 'EDIT.COMPOUND' : 'NEW.COMPOUND'}
-      title={initial ? 'Editar composto' : 'Novo composto'}
-    >
-      <div className="space-y-3.5">
+    <div className="space-y-3.5">
         <div>
           <label className="field-label">Nome</label>
           <input
@@ -252,7 +355,6 @@ export function CompoundForm({
         <button className="btn-primary" disabled={!f.name.trim()} onClick={save}>
           Salvar composto
         </button>
-      </div>
-    </Modal>
+    </div>
   )
 }
