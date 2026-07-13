@@ -10,7 +10,9 @@ import {
   IconDownload,
   IconUpload,
   IconTrash,
-  IconBell
+  IconBell,
+  IconCheck,
+  IconClose
 } from '../components/icons'
 import { downloadExport, importFromFile } from '../lib/export'
 import {
@@ -18,6 +20,9 @@ import {
   notificationsSupported,
   scheduleTodayReminders
 } from '../lib/notifications'
+import { useAuth } from '../auth/AuthProvider'
+import { useSyncState } from '../hooks/useSyncState'
+import { formatTime } from '../lib/dates'
 
 const APP_VERSION = '1.0.0'
 
@@ -93,6 +98,9 @@ export default function You() {
           </span>
         </div>
       </div>
+
+      {/* Conta / Sincronização */}
+      <AccountSection />
 
       {/* Preferências */}
       <SectionLabel>PREFERÊNCIAS</SectionLabel>
@@ -188,6 +196,178 @@ export default function You() {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return <div className="sys-label text-cyan mb-2">{children}</div>
+}
+
+const GoogleGlyph = () => (
+  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden>
+    <path
+      fill="#FFC107"
+      d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.3 35 24 35c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 5.1 29.5 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.2-.1-2.4-.4-3.5z"
+    />
+    <path
+      fill="#FF3D00"
+      d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 5.1 29.5 3 24 3 16 3 9.1 7.6 6.3 14.7z"
+    />
+    <path
+      fill="#4CAF50"
+      d="M24 45c5.2 0 10-2 13.6-5.2l-6.3-5.3C29.2 35.9 26.7 37 24 37c-5.3 0-9.7-2.6-11.3-7l-6.5 5C9 40.3 15.9 45 24 45z"
+    />
+    <path
+      fill="#1976D2"
+      d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4 5.5l6.3 5.3C41.8 35.7 45 30.4 45 24c0-1.2-.1-2.4-.4-3.5z"
+    />
+  </svg>
+)
+
+function AccountSection() {
+  const { configured, ready, user, signInGoogle, signInEmail, signOut } = useAuth()
+  const { status, lastSyncedAt } = useSyncState()
+  const [email, setEmail] = useState('')
+  const [sent, setSent] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  if (!configured) return null
+
+  const statusLabel =
+    status === 'syncing'
+      ? 'Sincronizando…'
+      : status === 'error'
+        ? 'Erro ao sincronizar'
+        : lastSyncedAt
+          ? `Sincronizado às ${formatTime(lastSyncedAt)}`
+          : 'Sincronizado'
+
+  async function onGoogle() {
+    setBusy(true)
+    setError(null)
+    const { error } = await signInGoogle()
+    if (error) setError(error)
+    setBusy(false)
+  }
+
+  async function onEmail() {
+    const value = email.trim()
+    if (!value) return
+    setBusy(true)
+    setError(null)
+    const { error } = await signInEmail(value)
+    setBusy(false)
+    if (error) setError(error)
+    else setSent(value)
+  }
+
+  return (
+    <>
+      <SectionLabel>CONTA // SYNC</SectionLabel>
+      <div className="card p-4 mb-5">
+        {!ready ? (
+          <div className="text-sm text-muted py-2">Verificando sessão…</div>
+        ) : user ? (
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="h-10 w-10 rounded-xl border border-cyan/40 bg-cyan/10 flex items-center justify-center shadow-glow-sm">
+                <IconUser width={18} height={18} className="text-cyan" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="text-ink truncate">{user.email}</div>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      status === 'error'
+                        ? 'bg-danger'
+                        : status === 'syncing'
+                          ? 'bg-cyan animate-pulse'
+                          : 'bg-cyan'
+                    }`}
+                  />
+                  <span className="text-[11px] text-muted">{statusLabel}</span>
+                </div>
+              </div>
+              <button
+                onClick={() => signOut()}
+                className="font-mono text-[10px] tracking-widest uppercase text-muted border border-border rounded-lg px-3 py-2"
+              >
+                Sair
+              </button>
+            </div>
+            <p className="text-[11px] text-muted/80 mt-3">
+              Seu protocolo, doses e medições sincronizam automaticamente entre seus
+              aparelhos.
+            </p>
+          </div>
+        ) : sent ? (
+          <div className="text-center py-2">
+            <div className="mx-auto mb-3 h-11 w-11 rounded-2xl border border-cyan/40 bg-cyan/10 flex items-center justify-center">
+              <IconCheck width={20} height={20} className="text-cyan" />
+            </div>
+            <div className="text-ink font-medium mb-1">Link enviado</div>
+            <p className="text-sm text-muted">
+              Abra o e-mail em <span className="text-ink">{sent}</span> e toque no link
+              para entrar. Pode fechar esta tela.
+            </p>
+            <button
+              onClick={() => setSent(null)}
+              className="mt-3 text-[12px] text-muted underline"
+            >
+              Usar outro e-mail
+            </button>
+          </div>
+        ) : (
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="eyebrow">SYS.AUTH // OPCIONAL</span>
+            </div>
+            <p className="text-sm text-muted mb-4">
+              Entre para sincronizar entre aparelhos. Se preferir, deixe em branco — o
+              app funciona 100% offline sem conta.
+            </p>
+
+            <button
+              onClick={onGoogle}
+              disabled={busy}
+              className="btn-ghost w-full mb-3 !bg-white/[0.04]"
+            >
+              <GoogleGlyph /> Entrar com Google
+            </button>
+
+            <div className="flex items-center gap-3 my-3">
+              <span className="h-px flex-1 bg-border" />
+              <span className="font-mono text-[9px] tracking-widest text-muted uppercase">
+                ou por e-mail
+              </span>
+              <span className="h-px flex-1 bg-border" />
+            </div>
+
+            <input
+              type="email"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              className="field mb-2"
+              placeholder="voce@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <button
+              onClick={onEmail}
+              disabled={busy || !email.trim()}
+              className="btn-primary"
+            >
+              Enviar link de acesso
+            </button>
+
+            {error && (
+              <div className="mt-3 flex items-start gap-2 text-sm text-danger">
+                <IconClose width={16} height={16} className="mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </>
+  )
 }
 
 function Row({ label, value }: { label: string; value: string }) {
