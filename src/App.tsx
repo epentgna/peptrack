@@ -1,11 +1,15 @@
-import { useEffect } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './db/db'
 import { Layout } from './components/Layout'
 import { useAuth } from './auth/AuthProvider'
 import { scheduleTodayReminders } from './lib/notifications'
 import AuthGate from './pages/AuthGate'
+import AgeGate from './pages/AgeGate'
+import Legal from './pages/Legal'
+
+const AGE_KEY = 'peptrack:ageConfirmed'
 import Protocol from './pages/Protocol'
 import ManageProtocol from './pages/ManageProtocol'
 import History from './pages/History'
@@ -20,11 +24,39 @@ export default function App() {
   const { configured, ready: authReady, user } = useAuth()
   const settings = useLiveQuery(() => db.settings.get(1), [])
   const protocolCount = useLiveQuery(() => db.protocolItems.count(), [])
+  const location = useLocation()
+  const [ageOk, setAgeOk] = useState(() => {
+    try {
+      return localStorage.getItem(AGE_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
 
   useEffect(() => {
     // (re)agenda lembretes quando protocolo/config mudam ou app abre.
     scheduleTodayReminders()
   }, [protocolCount, settings?.notificationsEnabled])
+
+  // Páginas legais sempre acessíveis (sem login / sem idade).
+  if (location.pathname === '/termos') return <Legal doc="termos" />
+  if (location.pathname === '/privacidade') return <Legal doc="privacidade" />
+
+  // Confirmação de idade (18+), antes de tudo.
+  if (!ageOk) {
+    return (
+      <AgeGate
+        onConfirm={() => {
+          try {
+            localStorage.setItem(AGE_KEY, '1')
+          } catch {
+            /* ignore */
+          }
+          setAgeOk(true)
+        }}
+      />
+    )
+  }
 
   // Aguarda o carregamento inicial dos dados e da sessão.
   if (
