@@ -62,6 +62,20 @@ export async function ensureSeed(): Promise<void> {
       }
     }
   )
+  await topUpLibrary()
+}
+
+/**
+ * Adiciona à biblioteca quaisquer compostos do seed que ainda não existam
+ * (por nome). Mantém compostos personalizados do usuário. Retorna true se
+ * algo foi adicionado — usado pela sincronização para propagar à nuvem.
+ */
+export async function topUpLibrary(): Promise<boolean> {
+  const existing = new Set((await db.compounds.toArray()).map((c) => c.name))
+  const missing = SEED_COMPOUNDS.filter((c) => !existing.has(c.name))
+  if (missing.length === 0) return false
+  await db.compounds.bulkAdd(missing as Compound[])
+  return true
 }
 
 export async function getSettings(): Promise<Settings> {

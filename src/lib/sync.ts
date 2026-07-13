@@ -1,6 +1,6 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from './supabase'
-import { db, ensureSeed } from '../db/db'
+import { db, ensureSeed, topUpLibrary } from '../db/db'
 import { buildExport, importBundle, type ExportBundle } from './export'
 
 // De quem são os dados atualmente no IndexedDB deste navegador.
@@ -215,6 +215,9 @@ export async function startSync(uid: string) {
       await pushNow()
     }
     setOwner(uid)
+    // Garante que novos peptídeos do seed apareçam também para contas antigas.
+    const added = await topUpLibrary()
+    if (added) await pushNow()
     subscribeRealtime(uid)
   } catch (e) {
     console.error('[sync] start falhou', e)
