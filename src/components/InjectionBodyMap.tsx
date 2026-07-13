@@ -8,13 +8,9 @@ interface SiteStat {
 interface Zone {
   site: InjectionSite
   kind: 'ellipse' | 'rect'
-  // centro para o texto
   cx: number
   cy: number
-  // ellipse
-  rx?: number
-  ry?: number
-  // rect
+  r?: number
   x?: number
   y?: number
   w?: number
@@ -23,12 +19,12 @@ interface Zone {
 
 // Vista frontal em espelho: lado esquerdo (E) do usuário à esquerda da tela.
 const ZONES: Zone[] = [
-  { site: 'Deltoide E', kind: 'ellipse', cx: 55, cy: 78, rx: 16, ry: 20 },
-  { site: 'Deltoide D', kind: 'ellipse', cx: 165, cy: 78, rx: 16, ry: 20 },
-  { site: 'Abdômen E', kind: 'rect', x: 79, y: 116, w: 28, h: 46, cx: 93, cy: 139 },
-  { site: 'Abdômen D', kind: 'rect', x: 113, y: 116, w: 28, h: 46, cx: 127, cy: 139 },
-  { site: 'Coxa E', kind: 'rect', x: 76, y: 188, w: 30, h: 84, cx: 91, cy: 230 },
-  { site: 'Coxa D', kind: 'rect', x: 114, y: 188, w: 30, h: 84, cx: 129, cy: 230 }
+  { site: 'Deltoide E', kind: 'ellipse', cx: 72, cy: 66, r: 13 },
+  { site: 'Deltoide D', kind: 'ellipse', cx: 128, cy: 66, r: 13 },
+  { site: 'Abdômen E', kind: 'rect', x: 76, y: 104, w: 22, h: 34, cx: 87, cy: 121 },
+  { site: 'Abdômen D', kind: 'rect', x: 102, y: 104, w: 22, h: 34, cx: 113, cy: 121 },
+  { site: 'Coxa E', kind: 'rect', x: 78, y: 184, w: 17, h: 58, cx: 86, cy: 213 },
+  { site: 'Coxa D', kind: 'rect', x: 105, y: 184, w: 17, h: 58, cx: 113, cy: 213 }
 ]
 
 export function InjectionBodyMap({
@@ -45,39 +41,53 @@ export function InjectionBodyMap({
   function style(site: InjectionSite) {
     const count = stats.get(site)?.count7d ?? 0
     if (site === selected) {
-      return { fill: 'rgba(34,211,238,0.38)', stroke: '#22D3EE', sw: 2.2, dash: undefined }
+      return { fill: 'rgba(34,211,238,0.40)', stroke: '#22D3EE', sw: 2, dash: undefined }
     }
     if (suggested.has(site)) {
       return {
-        fill: 'rgba(34,211,238,0.10)',
+        fill: 'rgba(34,211,238,0.12)',
         stroke: 'rgba(34,211,238,0.6)',
         sw: 1.6,
         dash: '4 3'
       }
     }
     if (count > 0) {
-      const a = Math.min(0.34, 0.12 + count * 0.08)
-      return { fill: `rgba(244,63,94,${a})`, stroke: '#33405A', sw: 1, dash: undefined }
+      const a = Math.min(0.34, 0.14 + count * 0.08)
+      return { fill: `rgba(244,63,94,${a})`, stroke: '#3a4a63', sw: 1, dash: undefined }
     }
-    return { fill: '#0B1220', stroke: '#1B2A3F', sw: 1, dash: undefined }
+    return { fill: 'rgba(255,255,255,0.03)', stroke: '#26364f', sw: 1, dash: undefined }
   }
 
   return (
     <div>
       <svg
-        viewBox="0 0 220 300"
-        className="w-full h-auto max-h-[260px]"
+        viewBox="0 0 200 290"
+        className="w-full h-auto max-h-[250px]"
         role="group"
         aria-label="Mapa de locais de aplicação"
       >
-        {/* Silhueta decorativa */}
-        <g fill="none" stroke="#1B2A3F" strokeWidth={1.5}>
-          <circle cx="110" cy="34" r="19" />
-          <path d="M96 52 h28 v6 q24 4 24 26 v70 q0 10 -6 18 l-6 60 M110 52 v0 M124 52 q-24 4 -24 26 v70 q0 10 6 18 l6 60" />
-          <path d="M83 88 l-14 46 M137 88 l14 46" />
-          <path d="M96 190 l-6 96 M124 190 l6 96" />
+        <defs>
+          <linearGradient id="bodyfill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#16223a" />
+            <stop offset="100%" stopColor="#0e1626" />
+          </linearGradient>
+        </defs>
+
+        {/* Silhueta preenchida */}
+        <g fill="url(#bodyfill)" stroke="#26364f" strokeWidth={1}>
+          <circle cx="100" cy="30" r="17" />
+          <rect x="94" y="44" width="12" height="12" rx="4" />
+          <path d="M70 60 Q100 52 130 60 L126 150 Q100 158 74 150 Z" />
+          <circle cx="72" cy="66" r="14" />
+          <circle cx="128" cy="66" r="14" />
+          <rect x="52" y="66" width="15" height="82" rx="7" />
+          <rect x="133" y="66" width="15" height="82" rx="7" />
+          <path d="M74 146 L126 146 L124 178 L76 178 Z" />
+          <rect x="76" y="172" width="21" height="104" rx="10" />
+          <rect x="103" y="172" width="21" height="104" rx="10" />
         </g>
 
+        {/* Zonas interativas */}
         {ZONES.map((z) => {
           const s = style(z.site)
           const count = stats.get(z.site)?.count7d ?? 0
@@ -89,22 +99,25 @@ export function InjectionBodyMap({
             style: {
               cursor: 'pointer',
               transition: 'fill 200ms ease, stroke 200ms ease',
-              filter: z.site === selected ? 'drop-shadow(0 0 5px rgba(34,211,238,0.5))' : undefined
+              filter:
+                z.site === selected
+                  ? 'drop-shadow(0 0 5px rgba(34,211,238,0.5))'
+                  : undefined
             },
             onClick: () => onSelect(z.site)
           }
           return (
             <g key={z.site}>
               {z.kind === 'ellipse' ? (
-                <ellipse cx={z.cx} cy={z.cy} rx={z.rx} ry={z.ry} {...common} />
+                <circle cx={z.cx} cy={z.cy} r={z.r} {...common} />
               ) : (
-                <rect x={z.x} y={z.y} width={z.w} height={z.h} rx={8} {...common} />
+                <rect x={z.x} y={z.y} width={z.w} height={z.h} rx={7} {...common} />
               )}
               <text
                 x={z.cx}
-                y={z.cy + 4}
+                y={z.cy + 3.5}
                 textAnchor="middle"
-                fontSize="11"
+                fontSize="10"
                 fontFamily="'JetBrains Mono', monospace"
                 fill={z.site === selected ? '#E8EEF6' : '#8A97A8'}
                 style={{ pointerEvents: 'none' }}
@@ -122,7 +135,7 @@ export function InjectionBodyMap({
         <LegendDot className="border-danger/50 bg-danger/25" label="usado (7d)" />
       </div>
 
-      {/* Botões-texto de apoio (acessibilidade / toque preciso) */}
+      {/* Botões-texto (toque preciso / acessibilidade) */}
       <div className="grid grid-cols-3 gap-1.5 mt-3">
         {INJECTION_SITES.map((s) => (
           <button
