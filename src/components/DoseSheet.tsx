@@ -88,7 +88,7 @@ export function DoseSheet({
 
   const [dose, setDose] = useState('')
   const [time, setTime] = useState('')
-  const [site, setSite] = useState<InjectionSite>('Abdômen E')
+  const [site, setSite] = useState<InjectionSite>('Abdômen SE')
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -102,7 +102,7 @@ export function DoseSheet({
     if (stored && INJECTION_SITES.includes(stored)) {
       setSite(stored)
     } else {
-      setSite('Abdômen E')
+      setSite('Abdômen SE')
     }
     setSaving(false)
   }, [target, compoundId])
@@ -180,10 +180,14 @@ export function DoseSheet({
                 suggested={suggested}
               />
             </div>
-            <p className="mt-2 text-[11px] text-muted/80">
+            <p className="mt-2 text-[11px] text-muted/80 leading-relaxed">
               Toque no local aplicado. Os pontos em <span className="text-cyan">ciano</span>{' '}
               são os menos usados nos últimos 7 dias (rotação sugerida). Em{' '}
               <span className="text-ink">{site}</span>: {lastUsedLabel(siteStats.get(site)!.last)}.
+              <br />
+              Rotacione entre regiões a cada aplicação e afaste ~2&nbsp;cm do ponto
+              anterior — evita nódulos (lipo-hipertrofia). No abdômen, mantenha ~5&nbsp;cm
+              de distância do umbigo.
             </p>
           </div>
         )}

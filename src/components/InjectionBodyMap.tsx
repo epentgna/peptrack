@@ -10,7 +10,8 @@ interface Zone {
   kind: 'ellipse' | 'rect'
   cx: number
   cy: number
-  r?: number
+  rx?: number
+  ry?: number
   x?: number
   y?: number
   w?: number
@@ -18,13 +19,18 @@ interface Zone {
 }
 
 // Vista frontal em espelho: lado esquerdo (E) do usuário à esquerda da tela.
+// Glúteos ficam de fora da silhueta (só nos botões) por ser vista traseira.
 const ZONES: Zone[] = [
-  { site: 'Deltoide E', kind: 'ellipse', cx: 72, cy: 66, r: 13 },
-  { site: 'Deltoide D', kind: 'ellipse', cx: 128, cy: 66, r: 13 },
-  { site: 'Abdômen E', kind: 'rect', x: 76, y: 104, w: 22, h: 34, cx: 87, cy: 121 },
-  { site: 'Abdômen D', kind: 'rect', x: 102, y: 104, w: 22, h: 34, cx: 113, cy: 121 },
-  { site: 'Coxa E', kind: 'rect', x: 78, y: 184, w: 17, h: 58, cx: 86, cy: 213 },
-  { site: 'Coxa D', kind: 'rect', x: 105, y: 184, w: 17, h: 58, cx: 113, cy: 213 }
+  { site: 'Braço E', kind: 'ellipse', cx: 59, cy: 88, rx: 8, ry: 13 },
+  { site: 'Braço D', kind: 'ellipse', cx: 141, cy: 88, rx: 8, ry: 13 },
+  { site: 'Flanco E', kind: 'ellipse', cx: 72, cy: 118, rx: 7, ry: 9 },
+  { site: 'Flanco D', kind: 'ellipse', cx: 128, cy: 118, rx: 7, ry: 9 },
+  { site: 'Abdômen SE', kind: 'rect', x: 79, y: 98, w: 19, h: 20, cx: 88, cy: 108 },
+  { site: 'Abdômen SD', kind: 'rect', x: 102, y: 98, w: 19, h: 20, cx: 111, cy: 108 },
+  { site: 'Abdômen IE', kind: 'rect', x: 79, y: 120, w: 19, h: 20, cx: 88, cy: 130 },
+  { site: 'Abdômen ID', kind: 'rect', x: 102, y: 120, w: 19, h: 20, cx: 111, cy: 130 },
+  { site: 'Coxa E', kind: 'rect', x: 78, y: 184, w: 17, h: 56, cx: 86, cy: 212 },
+  { site: 'Coxa D', kind: 'rect', x: 105, y: 184, w: 17, h: 56, cx: 113, cy: 212 }
 ]
 
 export function InjectionBodyMap({
@@ -47,7 +53,7 @@ export function InjectionBodyMap({
       return {
         fill: 'rgba(34,211,238,0.12)',
         stroke: 'rgba(34,211,238,0.6)',
-        sw: 1.6,
+        sw: 1.5,
         dash: '4 3'
       }
     }
@@ -62,7 +68,7 @@ export function InjectionBodyMap({
     <div>
       <svg
         viewBox="0 0 200 290"
-        className="w-full h-auto max-h-[250px]"
+        className="w-full h-auto max-h-[240px]"
         role="group"
         aria-label="Mapa de locais de aplicação"
       >
@@ -109,15 +115,15 @@ export function InjectionBodyMap({
           return (
             <g key={z.site}>
               {z.kind === 'ellipse' ? (
-                <circle cx={z.cx} cy={z.cy} r={z.r} {...common} />
+                <ellipse cx={z.cx} cy={z.cy} rx={z.rx} ry={z.ry} {...common} />
               ) : (
-                <rect x={z.x} y={z.y} width={z.w} height={z.h} rx={7} {...common} />
+                <rect x={z.x} y={z.y} width={z.w} height={z.h} rx={5} {...common} />
               )}
               <text
                 x={z.cx}
-                y={z.cy + 3.5}
+                y={z.cy + 3}
                 textAnchor="middle"
-                fontSize="10"
+                fontSize="9"
                 fontFamily="'JetBrains Mono', monospace"
                 fill={z.site === selected ? '#E8EEF6' : '#8A97A8'}
                 style={{ pointerEvents: 'none' }}
@@ -135,23 +141,29 @@ export function InjectionBodyMap({
         <LegendDot className="border-danger/50 bg-danger/25" label="usado (7d)" />
       </div>
 
-      {/* Botões-texto (toque preciso / acessibilidade) */}
+      {/* Botões-texto (todos os 12 locais; glúteos são vista traseira) */}
       <div className="grid grid-cols-3 gap-1.5 mt-3">
-        {INJECTION_SITES.map((s) => (
-          <button
-            key={s}
-            onClick={() => onSelect(s)}
-            className={`rounded-lg border py-1.5 font-mono text-[9px] tracking-wide uppercase ${
-              s === selected
-                ? 'border-cyan/70 bg-cyan/15 text-cyan'
-                : suggested.has(s)
-                  ? 'border-cyan/30 text-ink'
-                  : 'border-border text-muted'
-            }`}
-          >
-            {s}
-          </button>
-        ))}
+        {INJECTION_SITES.map((s) => {
+          const count = stats.get(s)?.count7d ?? 0
+          return (
+            <button
+              key={s}
+              onClick={() => onSelect(s)}
+              className={`flex flex-col items-center rounded-lg border py-1.5 font-mono text-[9px] tracking-wide uppercase ${
+                s === selected
+                  ? 'border-cyan/70 bg-cyan/15 text-cyan'
+                  : suggested.has(s)
+                    ? 'border-cyan/30 text-ink'
+                    : 'border-border text-muted'
+              }`}
+            >
+              <span>{s}</span>
+              <span className="text-[8px] opacity-70">
+                {count > 0 ? `${count}×` : 'livre'}
+              </span>
+            </button>
+          )
+        })}
       </div>
     </div>
   )
