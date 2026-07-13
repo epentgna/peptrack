@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { Modal } from '../components/Modal'
+import { CompoundForm } from './Library'
 import { IconChevron, IconEdit, IconTrash, IconPlus } from '../components/icons'
 import { weekdayShort, startOfDay } from '../lib/dates'
 import type { Compound, ProtocolItem } from '../types'
@@ -172,6 +173,7 @@ function ItemEditor({
   onClose: () => void
 }) {
   const [d, setD] = useState<Draft>(draft)
+  const [showCreate, setShowCreate] = useState(false)
 
   function toggleDay(day: number) {
     setD((prev) => ({
@@ -221,6 +223,13 @@ function ItemEditor({
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="mt-2 flex items-center gap-1.5 font-mono text-[10px] tracking-widest uppercase text-cyan"
+          >
+            <IconPlus width={13} height={13} /> Criar peptídeo personalizado
+          </button>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -265,6 +274,16 @@ function ItemEditor({
           Salvar
         </button>
       </div>
+
+      {showCreate && (
+        <CompoundForm
+          onClose={() => setShowCreate(false)}
+          onSaved={(id) => {
+            setD((prev) => ({ ...prev, compoundId: id }))
+            setShowCreate(false)
+          }}
+        />
+      )}
     </Modal>
   )
 }
