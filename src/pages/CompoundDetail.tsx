@@ -16,6 +16,7 @@ import {
 import { weekdayShort, startOfDay } from '../lib/dates'
 import { computeVialStatus, activeVialForCompound } from '../lib/vials'
 import { isInjectable } from '../lib/compound'
+import { COMPOUND_INFO } from '../db/compoundInfo'
 import type { Compound } from '../types'
 
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6]
@@ -61,6 +62,7 @@ export default function CompoundDetail() {
   }
 
   const injectable = isInjectable(compound.route)
+  const info = COMPOUND_INFO[compound.name]
   const vialStatus = injectable && vial ? computeVialStatus(vial) : null
 
   return (
@@ -101,9 +103,21 @@ export default function CompoundDetail() {
       )}
 
       {compound.description && (
-        <p className="text-[15px] leading-relaxed text-ink/85 mb-5">
+        <p className="text-[15px] leading-relaxed text-ink/85 mb-4">
           {compound.description}
         </p>
+      )}
+
+      {info && (info.mechanism || info.uses || info.cautions) && (
+        <div className="card p-4 mb-5 space-y-3">
+          {info.mechanism && (
+            <InfoRow label="COMO AGE" text={info.mechanism} />
+          )}
+          {info.uses && <InfoRow label="USOS ESTUDADOS" text={info.uses} />}
+          {info.cautions && (
+            <InfoRow label="CUIDADOS" text={info.cautions} tone="warn" />
+          )}
+        </div>
       )}
 
       {/* Frasco ativo */}
@@ -246,6 +260,27 @@ export default function CompoundDetail() {
         />
       )}
     </>
+  )
+}
+
+function InfoRow({
+  label,
+  text,
+  tone
+}: {
+  label: string
+  text: string
+  tone?: 'warn'
+}) {
+  return (
+    <div>
+      <div
+        className={`sys-label mb-1 ${tone === 'warn' ? 'text-danger/90' : 'text-cyan'}`}
+      >
+        {label}
+      </div>
+      <p className="text-sm text-ink/90 leading-relaxed">{text}</p>
+    </div>
   )
 }
 

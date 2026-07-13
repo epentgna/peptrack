@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { INJECTION_SITES, type InjectionSite, type Compound } from '../types'
 import { BottomSheet } from './BottomSheet'
+import { InjectionBodyMap } from './InjectionBodyMap'
 import { IconCheck } from './icons'
 import { formatTime, DAY_MS, combineDayAndTime } from '../lib/dates'
 import { deductDoseFromVial } from '../lib/vials'
@@ -171,37 +172,18 @@ export function DoseSheet({
         {injectable && (
           <div>
             <div className="field-label">Local da injeção</div>
-            <div className="grid grid-cols-3 gap-2">
-              {INJECTION_SITES.map((s) => {
-                const active = s === site
-                const stat = siteStats.get(s)!
-                const isSuggested = suggested.has(s) && !active
-                return (
-                  <button
-                    key={s}
-                    onClick={() => setSite(s)}
-                    className={`relative flex flex-col items-center justify-center gap-0.5 rounded-lg border px-2 py-2 min-h-[54px] transition-colors ${
-                      active
-                        ? 'border-cyan/70 bg-cyan/15 text-cyan shadow-glow-sm'
-                        : isSuggested
-                          ? 'border-cyan/30 text-ink'
-                          : 'border-border text-muted'
-                    }`}
-                  >
-                    <span className="text-[12px] font-medium leading-none">{s}</span>
-                    <span className="font-mono text-[9px] tracking-wide leading-none">
-                      {stat.count7d > 0 ? `${stat.count7d}× · 7d` : 'livre'}
-                    </span>
-                    {isSuggested && (
-                      <span className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-cyan" />
-                    )}
-                  </button>
-                )
-              })}
+            <div className="card bg-white/[0.02] p-3">
+              <InjectionBodyMap
+                selected={site}
+                onSelect={setSite}
+                stats={siteStats}
+                suggested={suggested}
+              />
             </div>
             <p className="mt-2 text-[11px] text-muted/80">
-              Rotacione para os pontos <span className="text-cyan">livres</span> (marcados)
-              — evita acúmulo no mesmo local. Neste ponto: {lastUsedLabel(siteStats.get(site)!.last)}.
+              Toque no local aplicado. Os pontos em <span className="text-cyan">ciano</span>{' '}
+              são os menos usados nos últimos 7 dias (rotação sugerida). Em{' '}
+              <span className="text-ink">{site}</span>: {lastUsedLabel(siteStats.get(site)!.last)}.
             </p>
           </div>
         )}
