@@ -22,10 +22,11 @@ import {
 } from '../lib/notifications'
 import { useAuth } from '../auth/AuthProvider'
 import { useSyncState } from '../hooks/useSyncState'
+import { resyncNow } from '../lib/sync'
 import { GoogleGlyph } from '../components/GoogleGlyph'
 import { formatTime } from '../lib/dates'
 
-const APP_VERSION = '1.0.0'
+const APP_VERSION = '1.1.0'
 
 export default function You() {
   const settings = useLiveQuery(() => db.settings.get(1), [])
@@ -271,9 +272,15 @@ function AccountSection() {
                 Sair
               </button>
             </div>
+            <button
+              onClick={() => resyncNow()}
+              className="btn-ghost w-full mt-3"
+            >
+              Sincronizar agora
+            </button>
             <p className="text-[11px] text-muted/80 mt-3">
               Seu protocolo, doses e medições sincronizam automaticamente entre seus
-              aparelhos.
+              aparelhos. O app puxa o mais recente ao ser reaberto.
             </p>
           </div>
         ) : sent ? (

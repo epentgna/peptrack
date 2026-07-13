@@ -176,10 +176,63 @@ function subscribeRealtime(uid: string) {
     .subscribe()
 }
 
+/** Puxa o estado da nuvem se estiver mais recente que o local. */
+export async function resyncFromRemote() {
+  if (!supabase || !userId) return
+  try {
+    const { data: remote, error } = await supabase
+      .from('app_state')
+      .select('data, updated_at')
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (error) throw error
+    if (!remote?.data || !remote.updated_at) return
+    if (remote.updated_at === lastRemoteUpdatedAt) return
+    const incoming = Date.parse(remote.updated_at as string)
+    const known = lastRemoteUpdatedAt ? Date.parse(lastRemoteUpdatedAt) : 0
+    if (incoming > known) {
+      await applyRemote(remote.data as ExportBundle, remote.updated_at as string)
+    }
+  } catch (e) {
+    console.error('[sync] resync falhou', e)
+  }
+}
+
+/** Dispara imediatamente um push pendente (ao sair/minimizar o app). */
+export function flushPush() {
+  if (pushTimer) {
+    clearTimeout(pushTimer)
+    pushTimer = null
+    void pushNow()
+  }
+}
+
+/** Ação manual: envia pendências e puxa o mais recente. */
+export async function resyncNow() {
+  flushPush()
+  await resyncFromRemote()
+}
+
+let lifecycleBound = false
+function bindLifecycle() {
+  if (lifecycleBound || typeof document === 'undefined') return
+  lifecycleBound = true
+  document.addEventListener('visibilitychange', () => {
+    if (!userId) return
+    if (document.visibilityState === 'visible') void resyncFromRemote()
+    else flushPush()
+  })
+  window.addEventListener('pagehide', () => flushPush())
+  window.addEventListener('online', () => {
+    if (userId) void resyncFromRemote()
+  })
+}
+
 /** Inicia a sincronização para um usuário autenticado. */
 export async function startSync(uid: string) {
   if (!supabase) return
   registerHooks()
+  bindLifecycle()
   userId = uid
   setStatus('syncing')
   try {
