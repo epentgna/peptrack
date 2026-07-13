@@ -1,7 +1,24 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from './supabase'
-import { db } from '../db/db'
+import { db, ensureSeed } from '../db/db'
 import { buildExport, importBundle, type ExportBundle } from './export'
+
+// De quem são os dados atualmente no IndexedDB deste navegador.
+const OWNER_KEY = 'peptrack:ownerId'
+function getOwner(): string | null {
+  try {
+    return localStorage.getItem(OWNER_KEY)
+  } catch {
+    return null
+  }
+}
+function setOwner(id: string) {
+  try {
+    localStorage.setItem(OWNER_KEY, id)
+  } catch {
+    /* ignore */
+  }
+}
 
 export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error'
 
@@ -60,14 +77,17 @@ function registerHooks() {
   }
 }
 
-async function localHasData(): Promise<boolean> {
-  const [items, logs, meas, vials] = await Promise.all([
-    db.protocolItems.count(),
-    db.doseLogs.count(),
-    db.measurements.count(),
-    db.vials.count()
-  ])
-  return items + logs + meas + vials > 0
+/** Zera o estado local e re-semeia (usado ao entrar com outra conta nova). */
+async function resetLocalToFresh() {
+  applyingRemote = true
+  try {
+    await db.transaction('rw', dataTables(), async () => {
+      await Promise.all(dataTables().map((t) => t.clear()))
+    })
+    await ensureSeed()
+  } finally {
+    applyingRemote = false
+  }
 }
 
 /** Estimativa de "quão recente" o estado local está (max timestamp). */
@@ -170,18 +190,31 @@ export async function startSync(uid: string) {
       .maybeSingle()
     if (error) throw error
 
-    const hasLocal = await localHasData()
-    if (!remote || !remote.data) {
-      await pushNow()
-    } else {
-      const remoteStamp = Date.parse(remote.updated_at as string)
-      const localStamp = await computeLocalStamp()
-      if (!hasLocal || remoteStamp > localStamp) {
-        await applyRemote(remote.data as ExportBundle, remote.updated_at as string)
+    const ownsLocal = getOwner() === uid
+
+    if (remote && remote.data) {
+      if (ownsLocal) {
+        // Mesma conta: quem tiver o estado mais recente vence.
+        const remoteStamp = Date.parse(remote.updated_at as string)
+        const localStamp = await computeLocalStamp()
+        if (remoteStamp >= localStamp) {
+          await applyRemote(remote.data as ExportBundle, remote.updated_at as string)
+        } else {
+          await pushNow()
+        }
       } else {
-        await pushNow()
+        // Conta diferente: a nuvem daquela conta manda; substitui o local.
+        await applyRemote(remote.data as ExportBundle, remote.updated_at as string)
       }
+    } else {
+      // Sem estado remoto para esta conta.
+      if (!ownsLocal) {
+        // Local pertence a outra conta (ou desconhecido): começa limpo.
+        await resetLocalToFresh()
+      }
+      await pushNow()
     }
+    setOwner(uid)
     subscribeRealtime(uid)
   } catch (e) {
     console.error('[sync] start falhou', e)
