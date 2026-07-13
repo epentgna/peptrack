@@ -5,9 +5,14 @@ import { INJECTION_SITES, type InjectionSite, type Compound } from '../types'
 import { BottomSheet } from './BottomSheet'
 import { InjectionBodyMap } from './InjectionBodyMap'
 import { DoseInput } from './DoseInput'
-import { IconCheck } from './icons'
+import { IconCheck, IconVial, IconAlert } from './icons'
 import { formatTime, DAY_MS, combineDayAndTime } from '../lib/dates'
-import { deductDoseFromVial } from '../lib/vials'
+import {
+  deductDoseFromVial,
+  activeVialForCompound,
+  computeVialStatus
+} from '../lib/vials'
+import { formatDose } from '../lib/dose'
 import { scheduleTodayReminders } from '../lib/notifications'
 import { isInjectable } from '../lib/compound'
 
@@ -87,6 +92,12 @@ export function DoseSheet({
   const suggested = useMemo(() => suggestedFrom(siteStats), [siteStats])
   const injectable = isInjectable(target?.compound.route)
 
+  const activeVial = useLiveQuery(
+    () => activeVialForCompound(compoundId),
+    [compoundId]
+  )
+  const vialStatus = injectable && activeVial ? computeVialStatus(activeVial) : null
+
   const [doseMcg, setDoseMcg] = useState(0)
   const [time, setTime] = useState('')
   const [site, setSite] = useState<InjectionSite>('Abdômen SE')
@@ -164,6 +175,34 @@ export function DoseSheet({
             />
           </div>
         </div>
+
+        {vialStatus && (
+          <div
+            className={`rounded-xl border p-3 flex items-center gap-3 ${
+              vialStatus.alert
+                ? 'border-danger/40 bg-danger/[0.06]'
+                : 'border-border bg-white/[0.02]'
+            }`}
+          >
+            <IconVial
+              width={18}
+              height={18}
+              className={vialStatus.alert ? 'text-danger' : 'text-cyan'}
+            />
+            <div className="flex-1 text-[13px] text-ink">
+              Frasco: {formatDose(vialStatus.vial.remainingMcg)} restante ·{' '}
+              {vialStatus.balancePct.toFixed(0)}%
+              <span className="text-muted">
+                {' '}
+                · vence em {vialStatus.daysLeft}
+                {vialStatus.daysLeft === 1 ? ' dia' : ' dias'}
+              </span>
+            </div>
+            {vialStatus.alert && (
+              <IconAlert width={16} height={16} className="text-danger shrink-0" />
+            )}
+          </div>
+        )}
 
         {injectable && (
           <div>

@@ -1,6 +1,35 @@
 import { db } from '../db/db'
 import type { Vial } from '../types'
 import { DAY_MS, startOfDay } from './dates'
+import { totalMcgForVial } from './calc'
+
+/**
+ * Registra um novo frasco para um composto, desativando frascos anteriores
+ * ativos do mesmo composto. Retorna o id criado.
+ */
+export async function startVial(
+  compoundId: number,
+  vialMg: number,
+  bacMl: number,
+  beyondUseDays = 28
+): Promise<number> {
+  const total = totalMcgForVial(vialMg)
+  const prev = await db.vials.where('compoundId').equals(compoundId).toArray()
+  await Promise.all(
+    prev.filter((v) => v.active).map((v) => db.vials.update(v.id!, { active: false }))
+  )
+  const id = await db.vials.add({
+    compoundId,
+    vialMg,
+    bacMl,
+    reconstitutedAt: Date.now(),
+    beyondUseDays: beyondUseDays || 28,
+    totalMcg: total,
+    remainingMcg: total,
+    active: true
+  })
+  return id as number
+}
 
 export interface VialStatus {
   vial: Vial
