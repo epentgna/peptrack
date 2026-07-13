@@ -3,7 +3,9 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './db/db'
 import { Layout } from './components/Layout'
+import { useAuth } from './auth/AuthProvider'
 import { scheduleTodayReminders } from './lib/notifications'
+import AuthGate from './pages/AuthGate'
 import Protocol from './pages/Protocol'
 import ManageProtocol from './pages/ManageProtocol'
 import History from './pages/History'
@@ -15,6 +17,7 @@ import You from './pages/You'
 import Onboarding from './pages/Onboarding'
 
 export default function App() {
+  const { configured, ready: authReady, user } = useAuth()
   const settings = useLiveQuery(() => db.settings.get(1), [])
   const protocolCount = useLiveQuery(() => db.protocolItems.count(), [])
 
@@ -23,13 +26,22 @@ export default function App() {
     scheduleTodayReminders()
   }, [protocolCount, settings?.notificationsEnabled])
 
-  // Aguarda o carregamento inicial dos dados.
-  if (settings === undefined || protocolCount === undefined) {
+  // Aguarda o carregamento inicial dos dados e da sessão.
+  if (
+    settings === undefined ||
+    protocolCount === undefined ||
+    (configured && !authReady)
+  ) {
     return (
       <div className="min-h-full flex items-center justify-center">
         <div className="eyebrow animate-pulse">SYS.BOOT // CARREGANDO</div>
       </div>
     )
+  }
+
+  // Login obrigatório: sem sessão, mostra a porta de entrada.
+  if (configured && !user) {
+    return <AuthGate />
   }
 
   const needsOnboarding = !settings.onboarded && protocolCount === 0
