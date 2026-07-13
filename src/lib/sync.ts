@@ -1,0 +1,205 @@
+import type { RealtimeChannel } from '@supabase/supabase-js'
+import { supabase } from './supabase'
+import { db } from '../db/db'
+import { buildExport, importBundle, type ExportBundle } from './export'
+
+export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error'
+
+let status: SyncStatus = 'idle'
+let lastSyncedAt: number | null = null
+const listeners = new Set<() => void>()
+
+// Snapshot cacheado (referência estável) para useSyncExternalStore.
+let snapshot: { status: SyncStatus; lastSyncedAt: number | null } = {
+  status,
+  lastSyncedAt
+}
+
+export function subscribeSync(l: () => void): () => void {
+  listeners.add(l)
+  return () => listeners.delete(l)
+}
+export function getSyncState(): { status: SyncStatus; lastSyncedAt: number | null } {
+  return snapshot
+}
+function notify() {
+  snapshot = { status, lastSyncedAt }
+  listeners.forEach((l) => l())
+}
+function setStatus(s: SyncStatus) {
+  status = s
+  notify()
+}
+
+let userId: string | null = null
+let applyingRemote = false
+let pushTimer: ReturnType<typeof setTimeout> | null = null
+let lastRemoteUpdatedAt: string | null = null
+let channel: RealtimeChannel | null = null
+
+const dataTables = () => [
+  db.compounds,
+  db.protocolItems,
+  db.doseLogs,
+  db.measurements,
+  db.vials,
+  db.settings
+]
+
+let hooksRegistered = false
+function registerHooks() {
+  if (hooksRegistered) return
+  hooksRegistered = true
+  const trigger = () => {
+    if (userId && !applyingRemote) schedulePush()
+  }
+  for (const table of dataTables()) {
+    table.hook('creating', () => trigger())
+    table.hook('updating', () => trigger())
+    table.hook('deleting', () => trigger())
+  }
+}
+
+async function localHasData(): Promise<boolean> {
+  const [items, logs, meas, vials] = await Promise.all([
+    db.protocolItems.count(),
+    db.doseLogs.count(),
+    db.measurements.count(),
+    db.vials.count()
+  ])
+  return items + logs + meas + vials > 0
+}
+
+/** Estimativa de "quão recente" o estado local está (max timestamp). */
+async function computeLocalStamp(): Promise<number> {
+  const [lastLog, lastMeas, vials, items] = await Promise.all([
+    db.doseLogs.orderBy('loggedAt').last(),
+    db.measurements.orderBy('measuredAt').last(),
+    db.vials.toArray(),
+    db.protocolItems.toArray()
+  ])
+  let m = 0
+  if (lastLog) m = Math.max(m, lastLog.loggedAt)
+  if (lastMeas) m = Math.max(m, lastMeas.measuredAt)
+  for (const v of vials) m = Math.max(m, v.reconstitutedAt)
+  for (const it of items) m = Math.max(m, it.startDate, it.endDate ?? 0)
+  return m
+}
+
+function schedulePush() {
+  setStatus('syncing')
+  if (pushTimer) clearTimeout(pushTimer)
+  pushTimer = setTimeout(() => {
+    void pushNow()
+  }, 1500)
+}
+
+async function pushNow() {
+  if (!supabase || !userId) return
+  try {
+    setStatus('syncing')
+    const bundle = await buildExport()
+    const updatedAt = new Date().toISOString()
+    const { error } = await supabase
+      .from('app_state')
+      .upsert({ user_id: userId, data: bundle, updated_at: updatedAt })
+    if (error) throw error
+    lastRemoteUpdatedAt = updatedAt
+    lastSyncedAt = Date.now()
+    setStatus('synced')
+  } catch (e) {
+    console.error('[sync] push falhou', e)
+    setStatus('error')
+  }
+}
+
+async function applyRemote(bundle: ExportBundle, updatedAt: string) {
+  applyingRemote = true
+  try {
+    await importBundle(bundle)
+    lastRemoteUpdatedAt = updatedAt
+    lastSyncedAt = Date.now()
+    setStatus('synced')
+  } catch (e) {
+    console.error('[sync] apply falhou', e)
+    setStatus('error')
+  } finally {
+    applyingRemote = false
+  }
+}
+
+function subscribeRealtime(uid: string) {
+  if (!supabase) return
+  if (channel) {
+    void supabase.removeChannel(channel)
+    channel = null
+  }
+  channel = supabase
+    .channel(`app_state_${uid}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'app_state',
+        filter: `user_id=eq.${uid}`
+      },
+      (payload) => {
+        const row = payload.new as { data?: ExportBundle; updated_at?: string }
+        if (!row?.updated_at || !row.data) return
+        if (row.updated_at === lastRemoteUpdatedAt) return // eco do nosso próprio push
+        const incoming = Date.parse(row.updated_at)
+        const known = lastRemoteUpdatedAt ? Date.parse(lastRemoteUpdatedAt) : 0
+        if (incoming > known) void applyRemote(row.data, row.updated_at)
+      }
+    )
+    .subscribe()
+}
+
+/** Inicia a sincronização para um usuário autenticado. */
+export async function startSync(uid: string) {
+  if (!supabase) return
+  registerHooks()
+  userId = uid
+  setStatus('syncing')
+  try {
+    const { data: remote, error } = await supabase
+      .from('app_state')
+      .select('data, updated_at')
+      .eq('user_id', uid)
+      .maybeSingle()
+    if (error) throw error
+
+    const hasLocal = await localHasData()
+    if (!remote || !remote.data) {
+      await pushNow()
+    } else {
+      const remoteStamp = Date.parse(remote.updated_at as string)
+      const localStamp = await computeLocalStamp()
+      if (!hasLocal || remoteStamp > localStamp) {
+        await applyRemote(remote.data as ExportBundle, remote.updated_at as string)
+      } else {
+        await pushNow()
+      }
+    }
+    subscribeRealtime(uid)
+  } catch (e) {
+    console.error('[sync] start falhou', e)
+    setStatus('error')
+  }
+}
+
+export async function stopSync() {
+  userId = null
+  if (pushTimer) {
+    clearTimeout(pushTimer)
+    pushTimer = null
+  }
+  if (channel && supabase) {
+    void supabase.removeChannel(channel)
+    channel = null
+  }
+  lastRemoteUpdatedAt = null
+  lastSyncedAt = null
+  setStatus('idle')
+}
