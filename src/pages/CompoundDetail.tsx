@@ -27,6 +27,15 @@ export default function CompoundDetail() {
   const compound = useLiveQuery(() => db.compounds.get(compoundId), [compoundId])
   const allCompounds = useLiveQuery(() => db.compounds.toArray(), [])
   const vial = useLiveQuery(() => activeVialForCompound(compoundId), [compoundId])
+  const myItems = useLiveQuery(
+    () =>
+      db.protocolItems
+        .where('compoundId')
+        .equals(compoundId)
+        .and((i) => i.active)
+        .toArray(),
+    [compoundId]
+  )
 
   const [editing, setEditing] = useState(false)
   const [addToProtocol, setAddToProtocol] = useState(false)
@@ -133,17 +142,33 @@ export default function CompoundDetail() {
         </div>
       )}
 
-      {/* Dose padrão */}
-      <div className="card p-4 mb-4">
-        <div className="sys-label text-cyan mb-1.5">DOSE PADRÃO</div>
-        {compound.defaultDoseMcg == null ? (
-          <p className="text-sm text-muted">Defina no seu protocolo</p>
-        ) : (
-          <p className="text-lg text-ink">
-            <span className="stat-number">{compound.defaultDoseMcg}</span> mcg
-          </p>
-        )}
-      </div>
+      {/* Sua dose (do seu protocolo) — some quando não há dose definida. */}
+      {(myItems && myItems.length > 0) || compound.defaultDoseMcg != null ? (
+        <div className="card p-4 mb-4">
+          <div className="sys-label text-cyan mb-2">SUA DOSE</div>
+          {myItems && myItems.length > 0 ? (
+            <div className="space-y-2">
+              {myItems
+                .slice()
+                .sort((a, b) => a.timeOfDay.localeCompare(b.timeOfDay))
+                .map((it) => (
+                  <div key={it.id} className="flex items-baseline justify-between">
+                    <span className="text-lg text-ink">
+                      <span className="stat-number">{it.doseMcg}</span> mcg
+                    </span>
+                    <span className="font-mono text-sm text-muted tabular-nums">
+                      {it.timeOfDay}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <p className="text-lg text-ink">
+              <span className="stat-number">{compound.defaultDoseMcg}</span> mcg
+            </p>
+          )}
+        </div>
+      ) : null}
 
       {/* Notas */}
       {compound.notes && (
