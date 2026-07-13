@@ -63,7 +63,7 @@ export interface DoseLog {
   doseMcg: number
   loggedAt: number
   scheduledFor: number // timestamp início do dia
-  site: InjectionSite
+  site?: InjectionSite // ausente para compostos orais/não injetáveis
   status: DoseStatus
   notes?: string
 }

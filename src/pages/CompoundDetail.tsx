@@ -15,6 +15,7 @@ import {
 } from '../components/icons'
 import { weekdayShort, startOfDay } from '../lib/dates'
 import { computeVialStatus, activeVialForCompound } from '../lib/vials'
+import { isInjectable } from '../lib/compound'
 import type { Compound } from '../types'
 
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6]
@@ -59,7 +60,8 @@ export default function CompoundDetail() {
     )
   }
 
-  const vialStatus = vial ? computeVialStatus(vial) : null
+  const injectable = isInjectable(compound.route)
+  const vialStatus = injectable && vial ? computeVialStatus(vial) : null
 
   return (
     <>
@@ -197,14 +199,24 @@ export default function CompoundDetail() {
         </div>
       )}
 
-      {/* Reconstituição */}
-      <div className="mb-4">
-        <div className="sys-label text-cyan mb-3">UTIL.RECONSTITUTION</div>
-        <ReconCalculator
-          compoundId={compoundId}
-          defaultDoseMcg={compound.defaultDoseMcg ?? undefined}
-        />
-      </div>
+      {/* Reconstituição — só para injetáveis (orais não usam seringa/frasco). */}
+      {injectable ? (
+        <div className="mb-4">
+          <div className="sys-label text-cyan mb-3">UTIL.RECONSTITUTION</div>
+          <ReconCalculator
+            compoundId={compoundId}
+            defaultDoseMcg={compound.defaultDoseMcg ?? undefined}
+          />
+        </div>
+      ) : (
+        <div className="card p-4 mb-4">
+          <div className="sys-label text-cyan mb-1.5">ADMINISTRAÇÃO</div>
+          <p className="text-sm text-muted">
+            Via {compound.route?.toLowerCase() || 'oral'} — sem reconstituição ou
+            cálculo de seringa.
+          </p>
+        </div>
+      )}
 
       <button className="btn-primary mt-2" onClick={() => setAddToProtocol(true)}>
         <IconPlus width={18} height={18} /> ADICIONAR AO PROTOCOLO
@@ -216,7 +228,10 @@ export default function CompoundDetail() {
         <CompoundForm
           initial={compound}
           onClose={() => setEditing(false)}
-          onSaved={() => setEditing(false)}
+          onSaved={(id) => {
+            setEditing(false)
+            if (id !== compoundId) navigate(`/biblioteca/${id}`)
+          }}
         />
       )}
 

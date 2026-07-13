@@ -7,6 +7,7 @@ import { Modal } from '../components/Modal'
 import { Disclaimer } from '../components/Eyebrow'
 import { IconCalculator, IconChevron, IconVial, IconPlus } from '../components/icons'
 import { CATEGORIES, type Category, type Compound } from '../types'
+import { isSeedCompound } from '../db/seed'
 
 const FILTERS: (Category | 'Todos')[] = ['Todos', ...CATEGORIES]
 
@@ -267,7 +268,9 @@ export function CompoundFormFields({
         .map((s) => s.trim())
         .filter(Boolean)
     }
-    if (initial?.id != null) {
+    // Compostos da biblioteca não são alteráveis: editar cria uma cópia
+    // personalizada, preservando o original.
+    if (initial?.id != null && !isSeedCompound(initial.name)) {
       await db.compounds.update(initial.id, payload)
       onSaved(initial.id)
     } else {
@@ -276,8 +279,17 @@ export function CompoundFormFields({
     }
   }
 
+  const isLibraryEntry = initial != null && isSeedCompound(initial.name)
+
   return (
     <div className="space-y-3.5">
+        {isLibraryEntry && (
+          <div className="rounded-xl border border-cyan/30 bg-cyan/[0.06] px-3.5 py-2.5 text-[12px] text-muted leading-relaxed">
+            Este é um composto da biblioteca. As alterações são salvas como um
+            <span className="text-ink"> novo composto personalizado</span> — o
+            original permanece intacto.
+          </div>
+        )}
         <div>
           <label className="field-label">Nome</label>
           <input
@@ -353,7 +365,7 @@ export function CompoundFormFields({
           />
         </div>
         <button className="btn-primary" disabled={!f.name.trim()} onClick={save}>
-          Salvar composto
+          {isLibraryEntry ? 'Salvar como novo composto' : 'Salvar composto'}
         </button>
     </div>
   )

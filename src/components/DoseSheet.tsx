@@ -7,6 +7,7 @@ import { IconCheck } from './icons'
 import { formatTime, DAY_MS, combineDayAndTime } from '../lib/dates'
 import { deductDoseFromVial } from '../lib/vials'
 import { scheduleTodayReminders } from '../lib/notifications'
+import { isInjectable } from '../lib/compound'
 
 export interface DoseTarget {
   compound: Compound
@@ -18,21 +19,43 @@ export interface DoseTarget {
 
 const lastSiteKey = (compoundId: number) => `peptrack:lastSite:${compoundId}`
 
-/** Locais menos usados nos últimos 7 dias (para sugerir rotação). */
-function leastUsedSites(logs: { site: InjectionSite; loggedAt: number }[]): Set<InjectionSite> {
+interface SiteStat {
+  count7d: number
+  last: number | null
+}
+
+/** Uso por local: contagem nos últimos 7 dias e última aplicação. */
+function computeSiteStats(
+  logs: { site?: InjectionSite; loggedAt: number }[]
+): Map<InjectionSite, SiteStat> {
   const since = Date.now() - 7 * DAY_MS
-  const counts = new Map<InjectionSite, number>()
-  INJECTION_SITES.forEach((s) => counts.set(s, 0))
+  const map = new Map<InjectionSite, SiteStat>()
+  INJECTION_SITES.forEach((s) => map.set(s, { count7d: 0, last: null }))
   for (const l of logs) {
-    if (l.loggedAt >= since) counts.set(l.site, (counts.get(l.site) ?? 0) + 1)
+    if (!l.site) continue
+    const st = map.get(l.site)
+    if (!st) continue
+    if (l.loggedAt >= since) st.count7d++
+    if (st.last == null || l.loggedAt > st.last) st.last = l.loggedAt
   }
+  return map
+}
+
+/** Locais menos usados nos últimos 7 dias (sugestão de rotação). */
+function suggestedFrom(stats: Map<InjectionSite, SiteStat>): Set<InjectionSite> {
   let min = Infinity
-  counts.forEach((c) => (min = Math.min(min, c)))
-  const result = new Set<InjectionSite>()
-  counts.forEach((c, s) => {
-    if (c === min) result.add(s)
+  stats.forEach((s) => (min = Math.min(min, s.count7d)))
+  const set = new Set<InjectionSite>()
+  stats.forEach((s, site) => {
+    if (s.count7d === min) set.add(site)
   })
-  return result
+  return set
+}
+
+function lastUsedLabel(ts: number | null): string {
+  if (ts == null) return 'nunca usado'
+  const d = Math.floor((Date.now() - ts) / DAY_MS)
+  return d <= 0 ? 'usado hoje' : d === 1 ? 'usado ontem' : `há ${d} dias`
 }
 
 export function DoseSheet({
@@ -55,10 +78,12 @@ export function DoseSheet({
     [compoundId]
   )
 
-  const suggested = useMemo(
-    () => leastUsedSites(recentLogs ?? []),
+  const siteStats = useMemo(
+    () => computeSiteStats(recentLogs ?? []),
     [recentLogs]
   )
+  const suggested = useMemo(() => suggestedFrom(siteStats), [siteStats])
+  const injectable = isInjectable(target?.compound.route)
 
   const [dose, setDose] = useState('')
   const [time, setTime] = useState('')
@@ -95,12 +120,12 @@ export function DoseSheet({
       doseMcg,
       loggedAt,
       scheduledFor: target.scheduledFor,
-      site,
+      site: injectable ? site : undefined,
       status,
       notes: notes.trim() || undefined
     })
     if (status === 'taken') {
-      localStorage.setItem(lastSiteKey(compoundId), site)
+      if (injectable) localStorage.setItem(lastSiteKey(compoundId), site)
       await deductDoseFromVial(target.compound.id!, doseMcg)
     }
     await scheduleTodayReminders()
@@ -143,32 +168,43 @@ export function DoseSheet({
           </div>
         </div>
 
-        <div>
-          <div className="field-label">Injection.site</div>
-          <div className="grid grid-cols-3 gap-2">
-            {INJECTION_SITES.map((s) => {
-              const active = s === site
-              const isSuggested = suggested.has(s) && !active
-              return (
-                <button
-                  key={s}
-                  onClick={() => setSite(s)}
-                  className={`chip !justify-center relative ${active ? 'chip-active' : ''} ${
-                    isSuggested ? 'border-cyan/30 text-ink' : ''
-                  }`}
-                >
-                  {s}
-                  {isSuggested && (
-                    <span className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-cyan" />
-                  )}
-                </button>
-              )
-            })}
+        {injectable && (
+          <div>
+            <div className="field-label">Local da injeção</div>
+            <div className="grid grid-cols-3 gap-2">
+              {INJECTION_SITES.map((s) => {
+                const active = s === site
+                const stat = siteStats.get(s)!
+                const isSuggested = suggested.has(s) && !active
+                return (
+                  <button
+                    key={s}
+                    onClick={() => setSite(s)}
+                    className={`relative flex flex-col items-center justify-center gap-0.5 rounded-lg border px-2 py-2 min-h-[54px] transition-colors ${
+                      active
+                        ? 'border-cyan/70 bg-cyan/15 text-cyan shadow-glow-sm'
+                        : isSuggested
+                          ? 'border-cyan/30 text-ink'
+                          : 'border-border text-muted'
+                    }`}
+                  >
+                    <span className="text-[12px] font-medium leading-none">{s}</span>
+                    <span className="font-mono text-[9px] tracking-wide leading-none">
+                      {stat.count7d > 0 ? `${stat.count7d}× · 7d` : 'livre'}
+                    </span>
+                    {isSuggested && (
+                      <span className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-cyan" />
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="mt-2 text-[11px] text-muted/80">
+              Rotacione para os pontos <span className="text-cyan">livres</span> (marcados)
+              — evita acúmulo no mesmo local. Neste ponto: {lastUsedLabel(siteStats.get(site)!.last)}.
+            </p>
           </div>
-          <p className="mt-2 text-[11px] text-muted/80">
-            Pontos com marca de rotação são os menos usados nos últimos 7 dias.
-          </p>
-        </div>
+        )}
 
         <div>
           <label className="field-label" htmlFor="dose-notes">
