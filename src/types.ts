@@ -14,20 +14,46 @@ export const CATEGORIES: Category[] = [
 ]
 
 export type InjectionSite =
-  | 'Abdômen E'
-  | 'Abdômen D'
+  | 'Abdômen SE'
+  | 'Abdômen SD'
+  | 'Abdômen IE'
+  | 'Abdômen ID'
+  | 'Flanco E'
+  | 'Flanco D'
   | 'Coxa E'
   | 'Coxa D'
-  | 'Deltoide E'
-  | 'Deltoide D'
+  | 'Braço E'
+  | 'Braço D'
+  | 'Glúteo E'
+  | 'Glúteo D'
 
 export const INJECTION_SITES: InjectionSite[] = [
-  'Abdômen E',
-  'Abdômen D',
+  'Abdômen SE',
+  'Abdômen SD',
+  'Abdômen IE',
+  'Abdômen ID',
+  'Flanco E',
+  'Flanco D',
   'Coxa E',
   'Coxa D',
-  'Deltoide E',
-  'Deltoide D'
+  'Braço E',
+  'Braço D',
+  'Glúteo E',
+  'Glúteo D'
+]
+
+/** Locais mostrados na silhueta frontal (glúteos ficam só nos botões). */
+export const BODY_MAP_SITES: InjectionSite[] = [
+  'Abdômen SE',
+  'Abdômen SD',
+  'Abdômen IE',
+  'Abdômen ID',
+  'Flanco E',
+  'Flanco D',
+  'Coxa E',
+  'Coxa D',
+  'Braço E',
+  'Braço D'
 ]
 
 export type DoseStatus = 'taken' | 'skipped'
