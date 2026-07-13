@@ -443,3 +443,10 @@ export const SEED_COMPOUNDS: Omit<Compound, 'id'>[] = [
     stackWith: []
   }
 ]
+
+/** Nomes dos compostos da biblioteca (não editáveis — editar cria cópia). */
+export const SEED_NAMES = new Set(SEED_COMPOUNDS.map((c) => c.name))
+
+export function isSeedCompound(name: string): boolean {
+  return SEED_NAMES.has(name)
+}

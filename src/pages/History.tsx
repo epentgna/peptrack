@@ -93,7 +93,13 @@ export default function History() {
                           </div>
                           <div className="text-sm text-muted">
                             {taken
-                              ? `${log.doseMcg} mcg · ${log.site} · ${formatTime(log.loggedAt)}`
+                              ? [
+                                  `${log.doseMcg} mcg`,
+                                  log.site,
+                                  formatTime(log.loggedAt)
+                                ]
+                                  .filter(Boolean)
+                                  .join(' · ')
                               : 'Pulada'}
                           </div>
                           {log.notes && (
