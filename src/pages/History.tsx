@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { IconChevron, IconCheck, IconClose, IconTrash } from '../components/icons'
 import { formatTime, monthDay, weekdayLong, startOfDay } from '../lib/dates'
+import { formatDose } from '../lib/dose'
 import { refundDoseToVial } from '../lib/vials'
 import type { Compound, DoseLog } from '../types'
 
@@ -94,7 +95,7 @@ export default function History() {
                           <div className="text-sm text-muted">
                             {taken
                               ? [
-                                  `${log.doseMcg} mcg`,
+                                  formatDose(log.doseMcg),
                                   log.site,
                                   formatTime(log.loggedAt)
                                 ]

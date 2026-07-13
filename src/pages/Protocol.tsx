@@ -8,6 +8,7 @@ import { DoseSheet, type DoseTarget } from '../components/DoseSheet'
 import { Disclaimer } from '../components/Eyebrow'
 import { IconHistory, IconPlus, IconCheck, IconAlert, IconVial } from '../components/icons'
 import { longDateHeadline, startOfDay, DAY_MS } from '../lib/dates'
+import { formatDose } from '../lib/dose'
 import { scheduledItemsForDay } from '../lib/adherence'
 import { alertingVials, type VialStatus } from '../lib/vials'
 import type { Compound, DoseLog, ProtocolItem } from '../types'
@@ -191,7 +192,7 @@ function ScheduleCard({
       <div className="min-w-0 flex-1">
         <div className="font-medium text-ink truncate">{compound.name}</div>
         <div className="text-sm text-muted">
-          {item.doseMcg} mcg{skipped ? ' · pulada' : ''}
+          {formatDose(item.doseMcg)}{skipped ? ' · pulada' : ''}
         </div>
       </div>
       <div className="font-mono text-sm text-muted tabular-nums">{item.timeOfDay}</div>
