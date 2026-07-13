@@ -4,6 +4,7 @@ import { db } from '../db/db'
 import { INJECTION_SITES, type InjectionSite, type Compound } from '../types'
 import { BottomSheet } from './BottomSheet'
 import { InjectionBodyMap } from './InjectionBodyMap'
+import { DoseInput } from './DoseInput'
 import { IconCheck } from './icons'
 import { formatTime, DAY_MS, combineDayAndTime } from '../lib/dates'
 import { deductDoseFromVial } from '../lib/vials'
@@ -86,7 +87,7 @@ export function DoseSheet({
   const suggested = useMemo(() => suggestedFrom(siteStats), [siteStats])
   const injectable = isInjectable(target?.compound.route)
 
-  const [dose, setDose] = useState('')
+  const [doseMcg, setDoseMcg] = useState(0)
   const [time, setTime] = useState('')
   const [site, setSite] = useState<InjectionSite>('Abdômen SE')
   const [notes, setNotes] = useState('')
@@ -94,7 +95,7 @@ export function DoseSheet({
 
   useEffect(() => {
     if (!target) return
-    setDose(String(target.doseMcg))
+    setDoseMcg(target.doseMcg)
     setTime(target.timeOfDay || formatTime(Date.now()))
     setNotes('')
     // último local usado deste composto, ou o primeiro sugerido.
@@ -110,7 +111,7 @@ export function DoseSheet({
   async function save(status: 'taken' | 'skipped') {
     if (!target || saving) return
     setSaving(true)
-    const doseMcg = parseFloat(dose) || target.doseMcg
+    const finalMcg = doseMcg || target.doseMcg
     const loggedAt =
       status === 'taken'
         ? combineDayAndTime(target.scheduledFor, time || formatTime(Date.now()))
@@ -118,7 +119,7 @@ export function DoseSheet({
     await db.doseLogs.add({
       protocolItemId: target.protocolItemId,
       compoundId: target.compound.id!,
-      doseMcg,
+      doseMcg: finalMcg,
       loggedAt,
       scheduledFor: target.scheduledFor,
       site: injectable ? site : undefined,
@@ -127,7 +128,7 @@ export function DoseSheet({
     })
     if (status === 'taken') {
       if (injectable) localStorage.setItem(lastSiteKey(compoundId), site)
-      await deductDoseFromVial(target.compound.id!, doseMcg)
+      await deductDoseFromVial(target.compound.id!, finalMcg)
     }
     await scheduleTodayReminders()
     setSaving(false)
@@ -142,19 +143,14 @@ export function DoseSheet({
       title={target?.compound.name}
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="field-label" htmlFor="dose-qty">
-              Quantidade (mcg)
-            </label>
-            <input
-              id="dose-qty"
-              inputMode="decimal"
-              className="field"
-              value={dose}
-              onChange={(e) => setDose(e.target.value)}
-            />
-          </div>
+        <div className="grid grid-cols-2 gap-3 items-start">
+          <DoseInput
+            id="dose-qty"
+            label="Quantidade"
+            initialMcg={target?.doseMcg}
+            resetKey={target}
+            onChangeMcg={setDoseMcg}
+          />
           <div>
             <label className="field-label" htmlFor="dose-time">
               Horário

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { Modal } from '../components/Modal'
+import { DoseInput } from '../components/DoseInput'
+import { formatDose } from '../lib/dose'
 import { CompoundForm } from './Library'
 import { IconChevron, IconEdit, IconTrash, IconPlus } from '../components/icons'
 import { weekdayShort, startOfDay } from '../lib/dates'
@@ -102,7 +104,7 @@ export default function ManageProtocol() {
                       {c?.name ?? 'Composto'}
                     </div>
                     <div className="text-sm text-muted">
-                      {item.doseMcg} mcg · {item.timeOfDay}
+                      {formatDose(item.doseMcg)} · {item.timeOfDay}
                     </div>
                     <div className="flex gap-1 mt-2">
                       {ALL_DAYS.map((d) => (
@@ -231,17 +233,12 @@ function ItemEditor({
             <IconPlus width={13} height={13} /> Criar peptídeo personalizado
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="field-label">Dose (mcg)</label>
-            <input
-              inputMode="decimal"
-              className="field"
-              value={d.doseMcg}
-              onChange={(e) => setD({ ...d, doseMcg: e.target.value })}
-              placeholder="ex.: 250"
-            />
-          </div>
+        <div className="grid grid-cols-2 gap-3 items-start">
+          <DoseInput
+            label="Dose"
+            initialMcg={parseFloat(d.doseMcg) || null}
+            onChangeMcg={(mcg) => setD({ ...d, doseMcg: String(mcg) })}
+          />
           <div>
             <label className="field-label">Horário</label>
             <input

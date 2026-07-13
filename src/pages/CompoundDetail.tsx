@@ -16,6 +16,8 @@ import {
 import { weekdayShort, startOfDay } from '../lib/dates'
 import { computeVialStatus, activeVialForCompound } from '../lib/vials'
 import { isInjectable } from '../lib/compound'
+import { formatDose } from '../lib/dose'
+import { DoseInput } from '../components/DoseInput'
 import { COMPOUND_INFO } from '../db/compoundInfo'
 import type { Compound } from '../types'
 
@@ -169,8 +171,8 @@ export default function CompoundDetail() {
                 .sort((a, b) => a.timeOfDay.localeCompare(b.timeOfDay))
                 .map((it) => (
                   <div key={it.id} className="flex items-baseline justify-between">
-                    <span className="text-lg text-ink">
-                      <span className="stat-number">{it.doseMcg}</span> mcg
+                    <span className="stat-number text-lg text-ink">
+                      {formatDose(it.doseMcg)}
                     </span>
                     <span className="font-mono text-sm text-muted tabular-nums">
                       {it.timeOfDay}
@@ -179,8 +181,8 @@ export default function CompoundDetail() {
                 ))}
             </div>
           ) : (
-            <p className="text-lg text-ink">
-              <span className="stat-number">{compound.defaultDoseMcg}</span> mcg
+            <p className="stat-number text-lg text-ink">
+              {formatDose(compound.defaultDoseMcg ?? 0)}
             </p>
           )}
         </div>
@@ -293,9 +295,7 @@ function AddToProtocolModal({
   onClose: () => void
   onDone: () => void
 }) {
-  const [dose, setDose] = useState(
-    compound.defaultDoseMcg != null ? String(compound.defaultDoseMcg) : ''
-  )
+  const [doseMcg, setDoseMcg] = useState(compound.defaultDoseMcg ?? 0)
   const [time, setTime] = useState('08:00')
   const [days, setDays] = useState<number[]>([...ALL_DAYS])
 
@@ -306,10 +306,10 @@ function AddToProtocolModal({
   }
 
   async function save() {
-    if (!(parseFloat(dose) > 0)) return
+    if (!(doseMcg > 0)) return
     await db.protocolItems.add({
       compoundId: compound.id!,
-      doseMcg: parseFloat(dose),
+      doseMcg,
       timeOfDay: time,
       daysOfWeek: days.length ? days : [...ALL_DAYS],
       active: true,
@@ -326,18 +326,12 @@ function AddToProtocolModal({
       title={`Adicionar ${compound.name}`}
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="field-label">Dose (mcg)</label>
-            <input
-              inputMode="decimal"
-              className="field"
-              value={dose}
-              onChange={(e) => setDose(e.target.value)}
-              placeholder="ex.: 250"
-              autoFocus
-            />
-          </div>
+        <div className="grid grid-cols-2 gap-3 items-start">
+          <DoseInput
+            label="Dose"
+            initialMcg={compound.defaultDoseMcg}
+            onChangeMcg={setDoseMcg}
+          />
           <div>
             <label className="field-label">Horário</label>
             <input
@@ -366,7 +360,7 @@ function AddToProtocolModal({
             ))}
           </div>
         </div>
-        <button className="btn-primary" disabled={!(parseFloat(dose) > 0)} onClick={save}>
+        <button className="btn-primary" disabled={!(doseMcg > 0)} onClick={save}>
           Adicionar ao protocolo
         </button>
       </div>

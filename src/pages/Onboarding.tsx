@@ -16,6 +16,7 @@ import {
   IconBell
 } from '../components/icons'
 import { weekdayShort, startOfDay } from '../lib/dates'
+import { DoseInput } from '../components/DoseInput'
 import type { Compound } from '../types'
 
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6]
@@ -464,17 +465,14 @@ export default function Onboarding() {
                 return (
                   <div key={c.id} className="card p-4">
                     <div className="font-medium text-ink mb-3">{c.name}</div>
-                    <div className="grid grid-cols-2 gap-3 mb-3">
-                      <div>
-                        <label className="field-label">Dose (mcg)</label>
-                        <input
-                          inputMode="decimal"
-                          className="field"
-                          value={d.doseMcg}
-                          onChange={(e) => updateDraft(c.id!, { doseMcg: e.target.value })}
-                          placeholder="ex.: 250"
-                        />
-                      </div>
+                    <div className="grid grid-cols-2 gap-3 mb-3 items-start">
+                      <DoseInput
+                        label="Dose"
+                        initialMcg={parseFloat(d.doseMcg) || null}
+                        onChangeMcg={(mcg) =>
+                          updateDraft(c.id!, { doseMcg: String(mcg) })
+                        }
+                      />
                       <div>
                         <label className="field-label">Horário</label>
                         <input
