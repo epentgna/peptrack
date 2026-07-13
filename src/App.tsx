@@ -19,6 +19,7 @@ import CompoundDetail from './pages/CompoundDetail'
 import Calculator from './pages/Calculator'
 import You from './pages/You'
 import Onboarding from './pages/Onboarding'
+import Vials from './pages/Vials'
 
 export default function App() {
   const { configured, ready: authReady, user } = useAuth()
@@ -103,6 +104,7 @@ export default function App() {
       {/* Telas de tela cheia (sem navegação de rodapé). */}
       <Route path="/protocolo/gerenciar" element={<ManageProtocol />} />
       <Route path="/historico" element={<History />} />
+      <Route path="/frascos" element={<Vials />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

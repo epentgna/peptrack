@@ -124,8 +124,9 @@ export default function CompoundDetail() {
 
       {/* Frasco ativo */}
       {vialStatus && (
-        <div
-          className={`card p-4 mb-4 ${
+        <button
+          onClick={() => navigate('/frascos')}
+          className={`card w-full text-left p-4 mb-4 ${
             vialStatus.alert ? 'border-danger/40 bg-danger/[0.05]' : ''
           }`}
         >
@@ -157,7 +158,7 @@ export default function CompoundDetail() {
               style={{ width: `${Math.max(2, vialStatus.balancePct)}%` }}
             />
           </div>
-        </div>
+        </button>
       )}
 
       {/* Sua dose (do seu protocolo) — some quando não há dose definida. */}

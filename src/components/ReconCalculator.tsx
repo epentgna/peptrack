@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { db } from '../db/db'
-import { reconstitution, totalMcgForVial } from '../lib/calc'
+import { reconstitution } from '../lib/calc'
+import { startVial } from '../lib/vials'
 import { SyringeSVG } from './SyringeSVG'
 import { IconVial } from './icons'
 
@@ -27,27 +27,12 @@ export function ReconCalculator({ compoundId, defaultDoseMcg }: ReconCalculatorP
     [vialMg, bacMl, doseMcg]
   )
 
-  async function startVial() {
+  async function onStartVial() {
     const mg = parseFloat(vialMg)
     const ml = parseFloat(bacMl)
     const days = parseInt(beyondUseDays, 10) || 28
     if (!(mg > 0) || !(ml > 0) || compoundId == null) return
-    const total = totalMcgForVial(mg)
-    // Desativa frascos anteriores do mesmo composto.
-    const prev = await db.vials.where('compoundId').equals(compoundId).toArray()
-    await Promise.all(
-      prev.filter((v) => v.active).map((v) => db.vials.update(v.id!, { active: false }))
-    )
-    await db.vials.add({
-      compoundId,
-      vialMg: mg,
-      bacMl: ml,
-      reconstitutedAt: Date.now(),
-      beyondUseDays: days,
-      totalMcg: total,
-      remainingMcg: total,
-      active: true
-    })
+    await startVial(compoundId, mg, ml, days)
     setStarted(`Frasco iniciado · validade ${days} dias`)
     setTimeout(() => setStarted(null), 3000)
   }
@@ -131,7 +116,7 @@ export function ReconCalculator({ compoundId, defaultDoseMcg }: ReconCalculatorP
             <button
               className="btn-primary !w-auto px-5"
               disabled={!(parseFloat(vialMg) > 0 && parseFloat(bacMl) > 0)}
-              onClick={startVial}
+              onClick={onStartVial}
             >
               <IconVial width={18} height={18} /> Iniciar frasco
             </button>

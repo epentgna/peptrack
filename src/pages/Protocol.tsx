@@ -79,6 +79,9 @@ export default function Protocol() {
         title={longDateHeadline(today)}
         right={
           <>
+            <IconButton label="Frascos" onClick={() => navigate('/frascos')}>
+              <IconVial width={20} height={20} />
+            </IconButton>
             <IconButton label="Histórico" onClick={() => navigate('/historico')}>
               <IconHistory width={20} height={20} />
             </IconButton>
@@ -96,7 +99,12 @@ export default function Protocol() {
       {(vialAlerts ?? []).length > 0 && (
         <div className="space-y-2 mb-4">
           {(vialAlerts ?? []).map((v) => (
-            <VialAlertCard key={v.vial.id} status={v} name={compoundById.get(v.vial.compoundId)?.name ?? 'Frasco'} />
+            <VialAlertCard
+              key={v.vial.id}
+              status={v}
+              name={compoundById.get(v.vial.compoundId)?.name ?? 'Frasco'}
+              onClick={() => navigate('/frascos')}
+            />
           ))}
         </div>
       )}
@@ -200,16 +208,27 @@ function ScheduleCard({
   )
 }
 
-function VialAlertCard({ status, name }: { status: VialStatus; name: string }) {
+function VialAlertCard({
+  status,
+  name,
+  onClick
+}: {
+  status: VialStatus
+  name: string
+  onClick: () => void
+}) {
   const msg = status.expiring
     ? `Frasco de ${name} vence em ${status.daysLeft} ${status.daysLeft === 1 ? 'dia' : 'dias'}`
     : `${name}: saldo baixo — prepare novo frasco`
   return (
-    <div className="card border-danger/40 bg-danger/[0.06] p-3.5 flex items-center gap-3">
+    <button
+      onClick={onClick}
+      className="card w-full border-danger/40 bg-danger/[0.06] p-3.5 flex items-center gap-3 text-left"
+    >
       <IconAlert width={20} height={20} className="text-danger shrink-0" />
       <div className="flex-1 text-sm text-ink">{msg}</div>
       <IconVial width={18} height={18} className="text-muted" />
-    </div>
+    </button>
   )
 }
 
