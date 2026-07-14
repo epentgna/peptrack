@@ -16,6 +16,8 @@ export const CATEGORIES: Category[] = [
 export type InjectionSite =
   | 'Abdômen SE'
   | 'Abdômen SD'
+  | 'Abdômen ME'
+  | 'Abdômen MD'
   | 'Abdômen IE'
   | 'Abdômen ID'
   | 'Flanco E'
@@ -26,10 +28,14 @@ export type InjectionSite =
   | 'Braço D'
   | 'Glúteo E'
   | 'Glúteo D'
+  | 'Costas E'
+  | 'Costas D'
 
 export const INJECTION_SITES: InjectionSite[] = [
   'Abdômen SE',
   'Abdômen SD',
+  'Abdômen ME',
+  'Abdômen MD',
   'Abdômen IE',
   'Abdômen ID',
   'Flanco E',
@@ -39,13 +45,17 @@ export const INJECTION_SITES: InjectionSite[] = [
   'Braço E',
   'Braço D',
   'Glúteo E',
-  'Glúteo D'
+  'Glúteo D',
+  'Costas E',
+  'Costas D'
 ]
 
-/** Locais mostrados na silhueta frontal (glúteos ficam só nos botões). */
+/** Locais mostrados na silhueta frontal (glúteos/costas ficam só nos botões). */
 export const BODY_MAP_SITES: InjectionSite[] = [
   'Abdômen SE',
   'Abdômen SD',
+  'Abdômen ME',
+  'Abdômen MD',
   'Abdômen IE',
   'Abdômen ID',
   'Flanco E',

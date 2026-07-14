@@ -23,12 +23,15 @@ interface Zone {
 const ZONES: Zone[] = [
   { site: 'Braço E', kind: 'ellipse', cx: 59, cy: 88, rx: 8, ry: 13 },
   { site: 'Braço D', kind: 'ellipse', cx: 141, cy: 88, rx: 8, ry: 13 },
-  { site: 'Flanco E', kind: 'ellipse', cx: 72, cy: 118, rx: 7, ry: 9 },
-  { site: 'Flanco D', kind: 'ellipse', cx: 128, cy: 118, rx: 7, ry: 9 },
-  { site: 'Abdômen SE', kind: 'rect', x: 79, y: 98, w: 19, h: 20, cx: 88, cy: 108 },
-  { site: 'Abdômen SD', kind: 'rect', x: 102, y: 98, w: 19, h: 20, cx: 111, cy: 108 },
-  { site: 'Abdômen IE', kind: 'rect', x: 79, y: 120, w: 19, h: 20, cx: 88, cy: 130 },
-  { site: 'Abdômen ID', kind: 'rect', x: 102, y: 120, w: 19, h: 20, cx: 111, cy: 130 },
+  { site: 'Flanco E', kind: 'ellipse', cx: 71, cy: 118, rx: 6, ry: 9 },
+  { site: 'Flanco D', kind: 'ellipse', cx: 129, cy: 118, rx: 6, ry: 9 },
+  // Abdômen em 6 quadrantes: Superior / Médio / Inferior × Esquerda / Direita
+  { site: 'Abdômen SE', kind: 'rect', x: 79, y: 94, w: 20, h: 15, cx: 89, cy: 102 },
+  { site: 'Abdômen SD', kind: 'rect', x: 101, y: 94, w: 20, h: 15, cx: 111, cy: 102 },
+  { site: 'Abdômen ME', kind: 'rect', x: 79, y: 111, w: 20, h: 15, cx: 89, cy: 119 },
+  { site: 'Abdômen MD', kind: 'rect', x: 101, y: 111, w: 20, h: 15, cx: 111, cy: 119 },
+  { site: 'Abdômen IE', kind: 'rect', x: 79, y: 128, w: 20, h: 15, cx: 89, cy: 136 },
+  { site: 'Abdômen ID', kind: 'rect', x: 101, y: 128, w: 20, h: 15, cx: 111, cy: 136 },
   { site: 'Coxa E', kind: 'rect', x: 78, y: 184, w: 17, h: 56, cx: 86, cy: 212 },
   { site: 'Coxa D', kind: 'rect', x: 105, y: 184, w: 17, h: 56, cx: 113, cy: 212 }
 ]
@@ -117,13 +120,13 @@ export function InjectionBodyMap({
               {z.kind === 'ellipse' ? (
                 <ellipse cx={z.cx} cy={z.cy} rx={z.rx} ry={z.ry} {...common} />
               ) : (
-                <rect x={z.x} y={z.y} width={z.w} height={z.h} rx={5} {...common} />
+                <rect x={z.x} y={z.y} width={z.w} height={z.h} rx={4} {...common} />
               )}
               <text
                 x={z.cx}
                 y={z.cy + 3}
                 textAnchor="middle"
-                fontSize="9"
+                fontSize="8"
                 fontFamily="'JetBrains Mono', monospace"
                 fill={z.site === selected ? '#E8EEF6' : '#8A97A8'}
                 style={{ pointerEvents: 'none' }}
