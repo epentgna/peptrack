@@ -16,9 +16,10 @@ import {
 import { weekdayShort, startOfDay } from '../lib/dates'
 import { computeVialStatus, activeVialForCompound, startVial } from '../lib/vials'
 import { ReconUnitsField } from '../components/ReconUnitsField'
-import { isInjectable } from '../lib/compound'
+import { isInjectable, defaultRoute, type AdminRoute } from '../lib/compound'
 import { formatDose } from '../lib/dose'
 import { DoseInput } from '../components/DoseInput'
+import { RouteSelect } from '../components/RouteSelect'
 import { COMPOUND_INFO } from '../db/compoundInfo'
 import type { Compound } from '../types'
 
@@ -303,7 +304,8 @@ function AddToProtocolModal({
   const [vialMg, setVialMg] = useState('')
   const [bacMl, setBacMl] = useState('')
   const [startVialToo, setStartVialToo] = useState(false)
-  const injectable = isInjectable(compound.route)
+  const [route, setRoute] = useState<AdminRoute>(defaultRoute(compound.route))
+  const injectable = isInjectable(route)
 
   function toggleDay(d: number) {
     setDays((prev) =>
@@ -322,10 +324,11 @@ function AddToProtocolModal({
       daysOfWeek: days.length ? days : [...ALL_DAYS],
       active: true,
       startDate: startOfDay(),
-      vialMg: mg,
-      bacMl: ml
+      route,
+      vialMg: injectable ? mg : undefined,
+      bacMl: injectable ? ml : undefined
     })
-    if (startVialToo && mg && ml) {
+    if (injectable && startVialToo && mg && ml) {
       await startVial(compound.id!, mg, ml)
     }
     onDone()
@@ -373,6 +376,8 @@ function AddToProtocolModal({
             ))}
           </div>
         </div>
+
+        <RouteSelect value={route} onChange={setRoute} />
 
         {injectable && (
           <div>

@@ -24,6 +24,7 @@ export interface DoseTarget {
   doseMcg: number
   timeOfDay: string
   scheduledFor: number // início do dia
+  route?: string
   vialMg?: number
   bacMl?: number
 }
@@ -94,7 +95,7 @@ export function DoseSheet({
     [recentLogs]
   )
   const suggested = useMemo(() => suggestedFrom(siteStats), [siteStats])
-  const injectable = isInjectable(target?.compound.route)
+  const injectable = isInjectable(target?.route ?? target?.compound.route)
 
   const activeVial = useLiveQuery(
     () => activeVialForCompound(compoundId),

@@ -154,6 +154,7 @@ export default function Protocol() {
                     doseMcg: p.item.doseMcg,
                     timeOfDay: p.item.timeOfDay,
                     scheduledFor: today,
+                    route: p.item.route,
                     vialMg: p.item.vialMg,
                     bacMl: p.item.bacMl
                   })

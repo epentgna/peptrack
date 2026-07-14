@@ -18,6 +18,8 @@ import {
 import { weekdayShort, startOfDay } from '../lib/dates'
 import { DoseInput } from '../components/DoseInput'
 import { ReconUnitsField } from '../components/ReconUnitsField'
+import { RouteSelect } from '../components/RouteSelect'
+import { isInjectable, defaultRoute, type AdminRoute } from '../lib/compound'
 import type { Compound } from '../types'
 
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6]
@@ -26,6 +28,7 @@ interface DraftItem {
   doseMcg: string
   timeOfDay: string
   daysOfWeek: number[]
+  route: string
   vialMg: string
   bacMl: string
 }
@@ -176,6 +179,7 @@ export default function Onboarding() {
                 doseMcg: '',
                 timeOfDay: '08:00',
                 daysOfWeek: [...ALL_DAYS],
+                route: defaultRoute(compounds?.find((c) => c.id === id)?.route),
                 vialMg: '',
                 bacMl: ''
               }
@@ -217,8 +221,13 @@ export default function Onboarding() {
         daysOfWeek: draft.daysOfWeek.length ? draft.daysOfWeek : [...ALL_DAYS],
         active: true,
         startDate: start,
-        vialMg: parseFloat(draft.vialMg) || undefined,
-        bacMl: parseFloat(draft.bacMl) || undefined
+        route: draft.route,
+        vialMg: isInjectable(draft.route)
+          ? parseFloat(draft.vialMg) || undefined
+          : undefined,
+        bacMl: isInjectable(draft.route)
+          ? parseFloat(draft.bacMl) || undefined
+          : undefined
       }
     })
     if (toAdd.length) await db.protocolItems.bulkAdd(toAdd)
@@ -511,16 +520,26 @@ export default function Onboarding() {
                       ))}
                     </div>
                     <div className="mt-3">
-                      <div className="sys-label text-cyan mb-2">FRASCO // UI (opcional)</div>
-                      <ReconUnitsField
-                        doseMcg={parseFloat(d.doseMcg) || 0}
-                        vialMg={d.vialMg}
-                        bacMl={d.bacMl}
-                        onVialMg={(v) => updateDraft(c.id!, { vialMg: v })}
-                        onBacMl={(v) => updateDraft(c.id!, { bacMl: v })}
-                        compact
+                      <RouteSelect
+                        value={d.route as AdminRoute}
+                        onChange={(r) => updateDraft(c.id!, { route: r })}
                       />
                     </div>
+                    {isInjectable(d.route) && (
+                      <div className="mt-3">
+                        <div className="sys-label text-cyan mb-2">
+                          FRASCO // UI (opcional)
+                        </div>
+                        <ReconUnitsField
+                          doseMcg={parseFloat(d.doseMcg) || 0}
+                          vialMg={d.vialMg}
+                          bacMl={d.bacMl}
+                          onVialMg={(v) => updateDraft(c.id!, { vialMg: v })}
+                          onBacMl={(v) => updateDraft(c.id!, { bacMl: v })}
+                          compact
+                        />
+                      </div>
+                    )}
                   </div>
                 )
               })}
