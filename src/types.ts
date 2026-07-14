@@ -80,6 +80,9 @@ export interface ProtocolItem {
   active: boolean
   startDate: number
   endDate?: number
+  // Reconstituição do frasco usada para calcular as unidades (UI) da seringa.
+  vialMg?: number
+  bacMl?: number
 }
 
 export interface DoseLog {

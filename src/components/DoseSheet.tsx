@@ -7,6 +7,8 @@ import { InjectionBodyMap } from './InjectionBodyMap'
 import { DoseInput } from './DoseInput'
 import { IconCheck, IconVial, IconAlert } from './icons'
 import { formatTime, DAY_MS, combineDayAndTime } from '../lib/dates'
+import { reconstitution } from '../lib/calc'
+import { SyringeSVG } from './SyringeSVG'
 import {
   deductDoseFromVial,
   activeVialForCompound,
@@ -22,6 +24,8 @@ export interface DoseTarget {
   doseMcg: number
   timeOfDay: string
   scheduledFor: number // início do dia
+  vialMg?: number
+  bacMl?: number
 }
 
 const lastSiteKey = (compoundId: number) => `peptrack:lastSite:${compoundId}`
@@ -104,6 +108,14 @@ export function DoseSheet({
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
 
+  // UI (unidades) a puxar: usa o frasco do item de protocolo ou o frasco ativo.
+  const reconMg = target?.vialMg ?? activeVial?.vialMg
+  const reconMl = target?.bacMl ?? activeVial?.bacMl
+  const recon =
+    injectable && reconMg && reconMl
+      ? reconstitution(reconMg, reconMl, doseMcg || (target?.doseMcg ?? 0))
+      : null
+
   useEffect(() => {
     if (!target) return
     setDoseMcg(target.doseMcg)
@@ -175,6 +187,24 @@ export function DoseSheet({
             />
           </div>
         </div>
+
+        {recon?.valid && (
+          <div className="rounded-xl border border-cyan/40 bg-cyan/[0.06] p-3">
+            <div className="flex items-baseline justify-between">
+              <span className="sys-label text-cyan">PUXAR ATÉ</span>
+              <span>
+                <span className="stat-number text-3xl text-cyan">
+                  {recon.units.toFixed(1)}
+                </span>
+                <span className="text-muted text-sm ml-1">UI</span>
+              </span>
+            </div>
+            <div className="text-[11px] text-muted mt-0.5 mb-1">
+              {recon.volumeMl.toFixed(3)} ml · {Math.round(recon.concentration)} mcg/ml
+            </div>
+            <SyringeSVG units={recon.units} />
+          </div>
+        )}
 
         {vialStatus && (
           <div

@@ -14,7 +14,8 @@ import {
   IconAlert
 } from '../components/icons'
 import { weekdayShort, startOfDay } from '../lib/dates'
-import { computeVialStatus, activeVialForCompound } from '../lib/vials'
+import { computeVialStatus, activeVialForCompound, startVial } from '../lib/vials'
+import { ReconUnitsField } from '../components/ReconUnitsField'
 import { isInjectable } from '../lib/compound'
 import { formatDose } from '../lib/dose'
 import { DoseInput } from '../components/DoseInput'
@@ -299,6 +300,10 @@ function AddToProtocolModal({
   const [doseMcg, setDoseMcg] = useState(compound.defaultDoseMcg ?? 0)
   const [time, setTime] = useState('08:00')
   const [days, setDays] = useState<number[]>([...ALL_DAYS])
+  const [vialMg, setVialMg] = useState('')
+  const [bacMl, setBacMl] = useState('')
+  const [startVialToo, setStartVialToo] = useState(false)
+  const injectable = isInjectable(compound.route)
 
   function toggleDay(d: number) {
     setDays((prev) =>
@@ -308,14 +313,21 @@ function AddToProtocolModal({
 
   async function save() {
     if (!(doseMcg > 0)) return
+    const mg = parseFloat(vialMg) || undefined
+    const ml = parseFloat(bacMl) || undefined
     await db.protocolItems.add({
       compoundId: compound.id!,
       doseMcg,
       timeOfDay: time,
       daysOfWeek: days.length ? days : [...ALL_DAYS],
       active: true,
-      startDate: startOfDay()
+      startDate: startOfDay(),
+      vialMg: mg,
+      bacMl: ml
     })
+    if (startVialToo && mg && ml) {
+      await startVial(compound.id!, mg, ml)
+    }
     onDone()
   }
 
@@ -361,6 +373,32 @@ function AddToProtocolModal({
             ))}
           </div>
         </div>
+
+        {injectable && (
+          <div>
+            <div className="sys-label text-cyan mb-2">FRASCO // UI</div>
+            <ReconUnitsField
+              doseMcg={doseMcg}
+              vialMg={vialMg}
+              bacMl={bacMl}
+              onVialMg={setVialMg}
+              onBacMl={setBacMl}
+              compact
+            />
+            {parseFloat(vialMg) > 0 && parseFloat(bacMl) > 0 && (
+              <label className="flex items-center gap-2 mt-3 text-sm text-muted">
+                <input
+                  type="checkbox"
+                  checked={startVialToo}
+                  onChange={(e) => setStartVialToo(e.target.checked)}
+                  className="accent-cyan h-4 w-4"
+                />
+                Iniciar frasco com esses valores (rastrear saldo)
+              </label>
+            )}
+          </div>
+        )}
+
         <button className="btn-primary" disabled={!(doseMcg > 0)} onClick={save}>
           Adicionar ao protocolo
         </button>
