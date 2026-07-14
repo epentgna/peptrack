@@ -12,6 +12,7 @@ import {
   CartesianGrid
 } from 'recharts'
 import { db } from '../db/db'
+import { parseNum } from '../lib/dose'
 import { Header, IconButton } from '../components/Layout'
 import { Modal } from '../components/Modal'
 import { Disclaimer } from '../components/Eyebrow'
@@ -292,7 +293,7 @@ function MeasureModal({ onClose }: { onClose: () => void }) {
   const [when, setWhen] = useState(toLocalInputValue(Date.now()))
 
   async function save() {
-    const v = parseFloat(value)
+    const v = parseNum(value)
     if (!(v > 0)) return
     await db.measurements.add({
       type: 'weight',
@@ -326,7 +327,7 @@ function MeasureModal({ onClose }: { onClose: () => void }) {
             onChange={(e) => setWhen(e.target.value)}
           />
         </div>
-        <button className="btn-primary" disabled={!(parseFloat(value) > 0)} onClick={save}>
+        <button className="btn-primary" disabled={!(parseNum(value) > 0)} onClick={save}>
           Salvar medição
         </button>
       </div>

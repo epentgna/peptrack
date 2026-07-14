@@ -19,6 +19,7 @@ import { weekdayShort, startOfDay } from '../lib/dates'
 import { DoseInput } from '../components/DoseInput'
 import { ReconUnitsField } from '../components/ReconUnitsField'
 import { RouteSelect } from '../components/RouteSelect'
+import { parseNum } from '../lib/dose'
 import { isInjectable, defaultRoute, type AdminRoute } from '../lib/compound'
 import type { Compound } from '../types'
 
@@ -216,17 +217,17 @@ export default function Onboarding() {
       const draft = drafts[c.id!]
       return {
         compoundId: c.id!,
-        doseMcg: parseFloat(draft.doseMcg) || 0,
+        doseMcg: parseNum(draft.doseMcg) || 0,
         timeOfDay: draft.timeOfDay,
         daysOfWeek: draft.daysOfWeek.length ? draft.daysOfWeek : [...ALL_DAYS],
         active: true,
         startDate: start,
         route: draft.route,
         vialMg: isInjectable(draft.route)
-          ? parseFloat(draft.vialMg) || undefined
+          ? parseNum(draft.vialMg) || undefined
           : undefined,
         bacMl: isInjectable(draft.route)
-          ? parseFloat(draft.bacMl) || undefined
+          ? parseNum(draft.bacMl) || undefined
           : undefined
       }
     })
@@ -258,7 +259,7 @@ export default function Onboarding() {
       case 'doses':
         return selectedCompounds.every((c) => {
           const d = drafts[c.id!]
-          return d && parseFloat(d.doseMcg) > 0 && d.timeOfDay
+          return d && parseNum(d.doseMcg) > 0 && d.timeOfDay
         })
       default:
         return true
@@ -488,7 +489,7 @@ export default function Onboarding() {
                     <div className="grid grid-cols-2 gap-3 mb-3 items-start">
                       <DoseInput
                         label="Dose"
-                        initialMcg={parseFloat(d.doseMcg) || null}
+                        initialMcg={parseNum(d.doseMcg) || null}
                         onChangeMcg={(mcg) =>
                           updateDraft(c.id!, { doseMcg: String(mcg) })
                         }
@@ -531,7 +532,7 @@ export default function Onboarding() {
                           FRASCO // UI (opcional)
                         </div>
                         <ReconUnitsField
-                          doseMcg={parseFloat(d.doseMcg) || 0}
+                          doseMcg={parseNum(d.doseMcg) || 0}
                           vialMg={d.vialMg}
                           bacMl={d.bacMl}
                           onVialMg={(v) => updateDraft(c.id!, { vialMg: v })}
