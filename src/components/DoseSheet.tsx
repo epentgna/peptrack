@@ -29,7 +29,6 @@ export interface DoseTarget {
   bacMl?: number
 }
 
-const lastSiteKey = (compoundId: number) => `peptrack:lastSite:${compoundId}`
 
 interface SiteStat {
   count7d: number
@@ -80,21 +79,33 @@ export function DoseSheet({
   const open = target != null
   const compoundId = target?.compound.id ?? -1
 
-  const recentLogs = useLiveQuery(
-    () =>
-      db.doseLogs
-        .where('compoundId')
-        .equals(compoundId)
-        .and((l) => l.status === 'taken')
-        .toArray(),
-    [compoundId]
+  // Histórico UNIFICADO de locais de aplicação (todos os peptídeos juntos):
+  // a rotação de local é compartilhada entre todos os injetáveis.
+  const injectionLogs = useLiveQuery(
+    () => db.doseLogs.filter((l) => l.status === 'taken' && !!l.site).toArray(),
+    []
   )
+  const compoundsList = useLiveQuery(() => db.compounds.toArray(), [])
+  const nameById = useMemo(() => {
+    const m = new Map<number, string>()
+    ;(compoundsList ?? []).forEach((c) => c.id != null && m.set(c.id, c.name))
+    return m
+  }, [compoundsList])
 
   const siteStats = useMemo(
-    () => computeSiteStats(recentLogs ?? []),
-    [recentLogs]
+    () => computeSiteStats(injectionLogs ?? []),
+    [injectionLogs]
   )
   const suggested = useMemo(() => suggestedFrom(siteStats), [siteStats])
+
+  const recentApplications = useMemo(
+    () =>
+      (injectionLogs ?? [])
+        .slice()
+        .sort((a, b) => b.loggedAt - a.loggedAt)
+        .slice(0, 4),
+    [injectionLogs]
+  )
   const injectable = isInjectable(target?.route ?? target?.compound.route)
 
   const activeVial = useLiveQuery(
@@ -122,14 +133,13 @@ export function DoseSheet({
     setDoseMcg(target.doseMcg)
     setTime(target.timeOfDay || formatTime(Date.now()))
     setNotes('')
-    // último local usado deste composto, ou o primeiro sugerido.
-    const stored = localStorage.getItem(lastSiteKey(compoundId)) as InjectionSite | null
-    if (stored && INJECTION_SITES.includes(stored)) {
-      setSite(stored)
-    } else {
-      setSite('Abdômen SE')
-    }
+    // Pré-seleciona um ponto sugerido (menos usado no geral), se houver.
+    const firstSuggested = suggested.values().next().value as
+      | InjectionSite
+      | undefined
+    setSite(firstSuggested ?? 'Abdômen SE')
     setSaving(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target, compoundId])
 
   async function save(status: 'taken' | 'skipped') {
@@ -151,7 +161,6 @@ export function DoseSheet({
       notes: notes.trim() || undefined
     })
     if (status === 'taken') {
-      if (injectable) localStorage.setItem(lastSiteKey(compoundId), site)
       await deductDoseFromVial(target.compound.id!, finalMcg)
     }
     await scheduleTodayReminders()
@@ -247,14 +256,34 @@ export function DoseSheet({
               />
             </div>
             <p className="mt-2 text-[11px] text-muted/80 leading-relaxed">
-              Toque no local aplicado. Os pontos em <span className="text-cyan">ciano</span>{' '}
-              são os menos usados nos últimos 7 dias (rotação sugerida). Em{' '}
+              Histórico <span className="text-ink">unificado</span> de todos os
+              peptídeos. Os pontos em <span className="text-cyan">ciano</span> são os
+              menos usados nos últimos 7 dias (rotação sugerida). Em{' '}
               <span className="text-ink">{site}</span>: {lastUsedLabel(siteStats.get(site)!.last)}.
               <br />
-              Rotacione entre regiões a cada aplicação e afaste ~2&nbsp;cm do ponto
-              anterior — evita nódulos (lipo-hipertrofia). No abdômen, mantenha ~5&nbsp;cm
-              de distância do umbigo.
+              Afaste ~2&nbsp;cm do ponto anterior (evita nódulos); no abdômen, ~5&nbsp;cm
+              do umbigo.
             </p>
+
+            {recentApplications.length > 0 && (
+              <div className="mt-3">
+                <div className="sys-label text-muted mb-1.5">ÚLTIMAS APLICAÇÕES</div>
+                <div className="space-y-1">
+                  {recentApplications.map((l) => (
+                    <div
+                      key={l.id}
+                      className="flex items-center justify-between text-[12px]"
+                    >
+                      <span className="text-ink">{l.site}</span>
+                      <span className="text-muted truncate ml-2">
+                        {nameById.get(l.compoundId) ?? 'Peptídeo'} ·{' '}
+                        {lastUsedLabel(l.loggedAt).replace('usado ', '')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
