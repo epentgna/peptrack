@@ -441,6 +441,19 @@ export const SEED_COMPOUNDS: Omit<Compound, 'id'>[] = [
     route: 'Subcutânea',
     defaultDoseMcg: null,
     stackWith: []
+  },
+  {
+    name: 'KLOW',
+    category: 'Cicatrização',
+    halfLife: 'Combina peptídeos de meia-vidas variadas',
+    cycleNote: 'Ciclos de reparo; fase de carga seguida de manutenção é comum.',
+    description:
+      'Blend de recuperação com quatro peptídeos: GHK-Cu, BPC-157, TB-500 e KPV. Estudada pela sinergia em reparo tecidual, formação de colágeno/angiogênese e modulação da inflamação.',
+    notes:
+      'Vem liofilizada (frasco combinado, tipicamente ~80 mg: 50 GHK-Cu / 10 BPC-157 / 10 TB-500 / 10 KPV). Reconstituir com água bacteriostática e refrigerar.',
+    route: 'Subcutânea',
+    defaultDoseMcg: null,
+    stackWith: ['BPC-157', 'TB-500', 'GHK-Cu', 'KPV']
   }
 ]
 

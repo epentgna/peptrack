@@ -229,5 +229,12 @@ export const COMPOUND_INFO: Record<string, CompoundInfo> = {
     uses: 'Interesse em massa e recuperação muscular.',
     cautions:
       'Inibir miostatina cronicamente tem riscos pouco conhecidos; usar em ciclos curtos.'
+  },
+  KLOW: {
+    mechanism:
+      'Combina 4 peptídeos: GHK-Cu (colágeno/angiogênese), BPC-157 (reparo e anti-inflamatório via óxido nítrico), TB-500 (migração celular e angiogênese) e KPV (anti-inflamatório via α-MSH).',
+    uses: 'Reparo tecidual, recuperação e modulação da inflamação de forma combinada.',
+    cautions:
+      'Evidência majoritariamente pré-clínica e por componente. Frasco combinado — atenção à proporção ao dosar. Reconstituir e refrigerar.'
   }
 }
