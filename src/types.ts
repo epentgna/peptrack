@@ -80,6 +80,7 @@ export interface ProtocolItem {
   active: boolean
   startDate: number
   endDate?: number
+  route?: string // via de administração deste item (Subcutânea/Oral/Intranasal/…)
   // Reconstituição do frasco usada para calcular as unidades (UI) da seringa.
   vialMg?: number
   bacMl?: number

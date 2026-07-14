@@ -5,6 +5,8 @@ import { db } from '../db/db'
 import { Modal } from '../components/Modal'
 import { DoseInput } from '../components/DoseInput'
 import { ReconUnitsField } from '../components/ReconUnitsField'
+import { RouteSelect } from '../components/RouteSelect'
+import { isInjectable, defaultRoute, type AdminRoute } from '../lib/compound'
 import { formatDose } from '../lib/dose'
 import { CompoundForm } from './Library'
 import { IconChevron, IconEdit, IconTrash, IconPlus } from '../components/icons'
@@ -20,6 +22,7 @@ interface Draft {
   timeOfDay: string
   daysOfWeek: number[]
   active: boolean
+  route: string
   vialMg: string
   bacMl: string
 }
@@ -47,6 +50,7 @@ export default function ManageProtocol() {
       timeOfDay: '08:00',
       daysOfWeek: [...ALL_DAYS],
       active: true,
+      route: defaultRoute(compoundById.get(compounds![0]?.id ?? -1)?.route),
       vialMg: '',
       bacMl: ''
     }
@@ -60,6 +64,8 @@ export default function ManageProtocol() {
       timeOfDay: item.timeOfDay,
       daysOfWeek: item.daysOfWeek,
       active: item.active,
+      route:
+        item.route ?? defaultRoute(compoundById.get(item.compoundId)?.route),
       vialMg: item.vialMg != null ? String(item.vialMg) : '',
       bacMl: item.bacMl != null ? String(item.bacMl) : ''
     }
@@ -200,8 +206,9 @@ function ItemEditor({
       timeOfDay: d.timeOfDay,
       daysOfWeek: d.daysOfWeek.length ? d.daysOfWeek : [...ALL_DAYS],
       active: d.active,
-      vialMg: parseFloat(d.vialMg) || undefined,
-      bacMl: parseFloat(d.bacMl) || undefined
+      route: d.route,
+      vialMg: isInjectable(d.route) ? parseFloat(d.vialMg) || undefined : undefined,
+      bacMl: isInjectable(d.route) ? parseFloat(d.bacMl) || undefined : undefined
     }
     if (d.id != null) {
       await db.protocolItems.update(d.id, payload)
@@ -277,17 +284,24 @@ function ItemEditor({
           </div>
         </div>
 
-        <div>
-          <div className="sys-label text-cyan mb-2">FRASCO // UI (opcional)</div>
-          <ReconUnitsField
-            doseMcg={parseFloat(d.doseMcg) || 0}
-            vialMg={d.vialMg}
-            bacMl={d.bacMl}
-            onVialMg={(v) => setD({ ...d, vialMg: v })}
-            onBacMl={(v) => setD({ ...d, bacMl: v })}
-            compact
-          />
-        </div>
+        <RouteSelect
+          value={d.route as AdminRoute}
+          onChange={(r) => setD({ ...d, route: r })}
+        />
+
+        {isInjectable(d.route) && (
+          <div>
+            <div className="sys-label text-cyan mb-2">FRASCO // UI (opcional)</div>
+            <ReconUnitsField
+              doseMcg={parseFloat(d.doseMcg) || 0}
+              vialMg={d.vialMg}
+              bacMl={d.bacMl}
+              onVialMg={(v) => setD({ ...d, vialMg: v })}
+              onBacMl={(v) => setD({ ...d, bacMl: v })}
+              compact
+            />
+          </div>
+        )}
 
         <button className="btn-primary" disabled={!valid} onClick={save}>
           Salvar
