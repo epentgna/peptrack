@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { reconstitution } from '../lib/calc'
+import { parseNum } from '../lib/dose'
 import { startVial } from '../lib/vials'
 import { SyringeSVG } from './SyringeSVG'
 import { IconVial } from './icons'
@@ -20,16 +21,16 @@ export function ReconCalculator({ compoundId, defaultDoseMcg }: ReconCalculatorP
   const result = useMemo(
     () =>
       reconstitution(
-        parseFloat(vialMg) || 0,
-        parseFloat(bacMl) || 0,
-        parseFloat(doseMcg) || 0
+        parseNum(vialMg) || 0,
+        parseNum(bacMl) || 0,
+        parseNum(doseMcg) || 0
       ),
     [vialMg, bacMl, doseMcg]
   )
 
   async function onStartVial() {
-    const mg = parseFloat(vialMg)
-    const ml = parseFloat(bacMl)
+    const mg = parseNum(vialMg)
+    const ml = parseNum(bacMl)
     const days = parseInt(beyondUseDays, 10) || 28
     if (!(mg > 0) || !(ml > 0) || compoundId == null) return
     await startVial(compoundId, mg, ml, days)
@@ -115,7 +116,7 @@ export function ReconCalculator({ compoundId, defaultDoseMcg }: ReconCalculatorP
             </div>
             <button
               className="btn-primary !w-auto px-5"
-              disabled={!(parseFloat(vialMg) > 0 && parseFloat(bacMl) > 0)}
+              disabled={!(parseNum(vialMg) > 0 && parseNum(bacMl) > 0)}
               onClick={onStartVial}
             >
               <IconVial width={18} height={18} /> Iniciar frasco

@@ -1,4 +1,5 @@
 import { reconstitution } from '../lib/calc'
+import { parseNum } from '../lib/dose'
 import { SyringeSVG } from './SyringeSVG'
 
 /**
@@ -22,8 +23,8 @@ export function ReconUnitsField({
   compact?: boolean
 }) {
   const result = reconstitution(
-    parseFloat(vialMg) || 0,
-    parseFloat(bacMl) || 0,
+    parseNum(vialMg) || 0,
+    parseNum(bacMl) || 0,
     doseMcg
   )
 

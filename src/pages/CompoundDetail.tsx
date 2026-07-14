@@ -17,7 +17,7 @@ import { weekdayShort, startOfDay } from '../lib/dates'
 import { computeVialStatus, activeVialForCompound, startVial } from '../lib/vials'
 import { ReconUnitsField } from '../components/ReconUnitsField'
 import { isInjectable, defaultRoute, type AdminRoute } from '../lib/compound'
-import { formatDose } from '../lib/dose'
+import { formatDose, parseNum } from '../lib/dose'
 import { DoseInput } from '../components/DoseInput'
 import { RouteSelect } from '../components/RouteSelect'
 import { COMPOUND_INFO } from '../db/compoundInfo'
@@ -315,8 +315,8 @@ function AddToProtocolModal({
 
   async function save() {
     if (!(doseMcg > 0)) return
-    const mg = parseFloat(vialMg) || undefined
-    const ml = parseFloat(bacMl) || undefined
+    const mg = parseNum(vialMg) || undefined
+    const ml = parseNum(bacMl) || undefined
     await db.protocolItems.add({
       compoundId: compound.id!,
       doseMcg,
@@ -390,7 +390,7 @@ function AddToProtocolModal({
               onBacMl={setBacMl}
               compact
             />
-            {parseFloat(vialMg) > 0 && parseFloat(bacMl) > 0 && (
+            {parseNum(vialMg) > 0 && parseNum(bacMl) > 0 && (
               <label className="flex items-center gap-2 mt-3 text-sm text-muted">
                 <input
                   type="checkbox"

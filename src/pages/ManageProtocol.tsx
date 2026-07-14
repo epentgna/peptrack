@@ -7,7 +7,7 @@ import { DoseInput } from '../components/DoseInput'
 import { ReconUnitsField } from '../components/ReconUnitsField'
 import { RouteSelect } from '../components/RouteSelect'
 import { isInjectable, defaultRoute, type AdminRoute } from '../lib/compound'
-import { formatDose } from '../lib/dose'
+import { formatDose, parseNum } from '../lib/dose'
 import { CompoundForm } from './Library'
 import { IconChevron, IconEdit, IconTrash, IconPlus } from '../components/icons'
 import { weekdayShort, startOfDay } from '../lib/dates'
@@ -202,13 +202,13 @@ function ItemEditor({
   async function save() {
     const payload = {
       compoundId: d.compoundId,
-      doseMcg: parseFloat(d.doseMcg) || 0,
+      doseMcg: parseNum(d.doseMcg) || 0,
       timeOfDay: d.timeOfDay,
       daysOfWeek: d.daysOfWeek.length ? d.daysOfWeek : [...ALL_DAYS],
       active: d.active,
       route: d.route,
-      vialMg: isInjectable(d.route) ? parseFloat(d.vialMg) || undefined : undefined,
-      bacMl: isInjectable(d.route) ? parseFloat(d.bacMl) || undefined : undefined
+      vialMg: isInjectable(d.route) ? parseNum(d.vialMg) || undefined : undefined,
+      bacMl: isInjectable(d.route) ? parseNum(d.bacMl) || undefined : undefined
     }
     if (d.id != null) {
       await db.protocolItems.update(d.id, payload)
@@ -218,7 +218,7 @@ function ItemEditor({
     onClose()
   }
 
-  const valid = d.compoundId > 0 && parseFloat(d.doseMcg) > 0 && !!d.timeOfDay
+  const valid = d.compoundId > 0 && parseNum(d.doseMcg) > 0 && !!d.timeOfDay
 
   return (
     <Modal
@@ -252,7 +252,7 @@ function ItemEditor({
         <div className="grid grid-cols-2 gap-3 items-start">
           <DoseInput
             label="Dose"
-            initialMcg={parseFloat(d.doseMcg) || null}
+            initialMcg={parseNum(d.doseMcg) || null}
             onChangeMcg={(mcg) => setD({ ...d, doseMcg: String(mcg) })}
           />
           <div>
@@ -293,7 +293,7 @@ function ItemEditor({
           <div>
             <div className="sys-label text-cyan mb-2">FRASCO // UI (opcional)</div>
             <ReconUnitsField
-              doseMcg={parseFloat(d.doseMcg) || 0}
+              doseMcg={parseNum(d.doseMcg) || 0}
               vialMg={d.vialMg}
               bacMl={d.bacMl}
               onVialMg={(v) => setD({ ...d, vialMg: v })}

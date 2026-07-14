@@ -13,7 +13,7 @@ import {
 } from '../components/icons'
 import { computeVialStatus, vialExpiryTs, startVial } from '../lib/vials'
 import { totalMcgForVial } from '../lib/calc'
-import { formatDose } from '../lib/dose'
+import { formatDose, parseNum } from '../lib/dose'
 import { monthDay } from '../lib/dates'
 import type { Compound, Vial } from '../types'
 
@@ -181,13 +181,13 @@ function StartVialModal({
   const [bacMl, setBacMl] = useState('')
   const [days, setDays] = useState('28')
 
-  const mg = parseFloat(vialMg)
+  const mg = parseNum(vialMg)
   const total = mg > 0 ? totalMcgForVial(mg) : 0
-  const valid = compoundId > 0 && mg > 0 && parseFloat(bacMl) > 0
+  const valid = compoundId > 0 && mg > 0 && parseNum(bacMl) > 0
 
   async function save() {
     if (!valid) return
-    await startVial(compoundId, mg, parseFloat(bacMl), parseInt(days, 10) || 28)
+    await startVial(compoundId, mg, parseNum(bacMl), parseInt(days, 10) || 28)
     onDone()
   }
 
