@@ -17,6 +17,7 @@ import {
 } from '../components/icons'
 import { weekdayShort, startOfDay } from '../lib/dates'
 import { DoseInput } from '../components/DoseInput'
+import { ReconUnitsField } from '../components/ReconUnitsField'
 import type { Compound } from '../types'
 
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6]
@@ -25,6 +26,8 @@ interface DraftItem {
   doseMcg: string
   timeOfDay: string
   daysOfWeek: number[]
+  vialMg: string
+  bacMl: string
 }
 
 const GOALS = [
@@ -169,7 +172,13 @@ export default function Onboarding() {
           ? d
           : {
               ...d,
-              [id]: { doseMcg: '', timeOfDay: '08:00', daysOfWeek: [...ALL_DAYS] }
+              [id]: {
+                doseMcg: '',
+                timeOfDay: '08:00',
+                daysOfWeek: [...ALL_DAYS],
+                vialMg: '',
+                bacMl: ''
+              }
             }
       )
     }
@@ -207,7 +216,9 @@ export default function Onboarding() {
         timeOfDay: draft.timeOfDay,
         daysOfWeek: draft.daysOfWeek.length ? draft.daysOfWeek : [...ALL_DAYS],
         active: true,
-        startDate: start
+        startDate: start,
+        vialMg: parseFloat(draft.vialMg) || undefined,
+        bacMl: parseFloat(draft.bacMl) || undefined
       }
     })
     if (toAdd.length) await db.protocolItems.bulkAdd(toAdd)
@@ -498,6 +509,17 @@ export default function Onboarding() {
                           {weekdayShort(day).slice(0, 1)}
                         </button>
                       ))}
+                    </div>
+                    <div className="mt-3">
+                      <div className="sys-label text-cyan mb-2">FRASCO // UI (opcional)</div>
+                      <ReconUnitsField
+                        doseMcg={parseFloat(d.doseMcg) || 0}
+                        vialMg={d.vialMg}
+                        bacMl={d.bacMl}
+                        onVialMg={(v) => updateDraft(c.id!, { vialMg: v })}
+                        onBacMl={(v) => updateDraft(c.id!, { bacMl: v })}
+                        compact
+                      />
                     </div>
                   </div>
                 )

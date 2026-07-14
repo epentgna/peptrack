@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { Modal } from '../components/Modal'
 import { DoseInput } from '../components/DoseInput'
+import { ReconUnitsField } from '../components/ReconUnitsField'
 import { formatDose } from '../lib/dose'
 import { CompoundForm } from './Library'
 import { IconChevron, IconEdit, IconTrash, IconPlus } from '../components/icons'
@@ -19,6 +20,8 @@ interface Draft {
   timeOfDay: string
   daysOfWeek: number[]
   active: boolean
+  vialMg: string
+  bacMl: string
 }
 
 export default function ManageProtocol() {
@@ -43,7 +46,9 @@ export default function ManageProtocol() {
       doseMcg: '',
       timeOfDay: '08:00',
       daysOfWeek: [...ALL_DAYS],
-      active: true
+      active: true,
+      vialMg: '',
+      bacMl: ''
     }
   }
 
@@ -54,7 +59,9 @@ export default function ManageProtocol() {
       doseMcg: String(item.doseMcg),
       timeOfDay: item.timeOfDay,
       daysOfWeek: item.daysOfWeek,
-      active: item.active
+      active: item.active,
+      vialMg: item.vialMg != null ? String(item.vialMg) : '',
+      bacMl: item.bacMl != null ? String(item.bacMl) : ''
     }
   }
 
@@ -192,7 +199,9 @@ function ItemEditor({
       doseMcg: parseFloat(d.doseMcg) || 0,
       timeOfDay: d.timeOfDay,
       daysOfWeek: d.daysOfWeek.length ? d.daysOfWeek : [...ALL_DAYS],
-      active: d.active
+      active: d.active,
+      vialMg: parseFloat(d.vialMg) || undefined,
+      bacMl: parseFloat(d.bacMl) || undefined
     }
     if (d.id != null) {
       await db.protocolItems.update(d.id, payload)
@@ -267,6 +276,19 @@ function ItemEditor({
             ))}
           </div>
         </div>
+
+        <div>
+          <div className="sys-label text-cyan mb-2">FRASCO // UI (opcional)</div>
+          <ReconUnitsField
+            doseMcg={parseFloat(d.doseMcg) || 0}
+            vialMg={d.vialMg}
+            bacMl={d.bacMl}
+            onVialMg={(v) => setD({ ...d, vialMg: v })}
+            onBacMl={(v) => setD({ ...d, bacMl: v })}
+            compact
+          />
+        </div>
+
         <button className="btn-primary" disabled={!valid} onClick={save}>
           Salvar
         </button>

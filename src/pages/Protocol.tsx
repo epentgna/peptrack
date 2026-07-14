@@ -110,7 +110,7 @@ export default function Protocol() {
       )}
 
       {empty ? (
-        <EmptyProtocol onStart={() => navigate('/protocolo/gerenciar')} onOnboard={() => navigate('/onboarding')} />
+        <EmptyProtocol onLibrary={() => navigate('/biblioteca')} onOnboard={() => navigate('/onboarding')} />
       ) : (
         <>
           {/* Card de aderência do dia */}
@@ -153,7 +153,9 @@ export default function Protocol() {
                     protocolItemId: p.item.id,
                     doseMcg: p.item.doseMcg,
                     timeOfDay: p.item.timeOfDay,
-                    scheduledFor: today
+                    scheduledFor: today,
+                    vialMg: p.item.vialMg,
+                    bacMl: p.item.bacMl
                   })
                 }
               />
@@ -233,10 +235,10 @@ function VialAlertCard({
 }
 
 function EmptyProtocol({
-  onStart,
+  onLibrary,
   onOnboard
 }: {
-  onStart: () => void
+  onLibrary: () => void
   onOnboard: () => void
 }) {
   return (
@@ -246,13 +248,13 @@ function EmptyProtocol({
       </div>
       <h2 className="text-lg font-semibold text-ink mb-1">Nenhuma dose hoje</h2>
       <p className="text-sm text-muted mb-5">
-        Monte seu protocolo para ver a agenda do dia e registrar doses.
+        Escolha um peptídeo na biblioteca e informe sua dose, frasco e horários.
       </p>
-      <button className="btn-primary mb-2" onClick={onOnboard}>
-        Montar meu protocolo
+      <button className="btn-primary mb-2" onClick={onLibrary}>
+        Criar protocolo (biblioteca)
       </button>
-      <button className="btn-ghost w-full" onClick={onStart}>
-        Adicionar manualmente
+      <button className="btn-ghost w-full" onClick={onOnboard}>
+        Montar com o guia
       </button>
     </div>
   )
