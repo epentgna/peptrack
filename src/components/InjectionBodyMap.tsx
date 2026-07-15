@@ -18,14 +18,12 @@ interface Zone {
   h?: number
 }
 
-// Vista frontal em espelho: lado esquerdo (E) do usuário à esquerda da tela.
-// Glúteos ficam de fora da silhueta (só nos botões) por ser vista traseira.
-const ZONES: Zone[] = [
+// Vista em espelho: lado esquerdo (E) do usuário à esquerda da tela.
+const FRONT_ZONES: Zone[] = [
   { site: 'Braço E', kind: 'ellipse', cx: 59, cy: 88, rx: 8, ry: 13 },
   { site: 'Braço D', kind: 'ellipse', cx: 141, cy: 88, rx: 8, ry: 13 },
   { site: 'Flanco E', kind: 'ellipse', cx: 71, cy: 118, rx: 6, ry: 9 },
   { site: 'Flanco D', kind: 'ellipse', cx: 129, cy: 118, rx: 6, ry: 9 },
-  // Abdômen em 6 quadrantes: Superior / Médio / Inferior × Esquerda / Direita
   { site: 'Abdômen SE', kind: 'rect', x: 79, y: 94, w: 20, h: 15, cx: 89, cy: 102 },
   { site: 'Abdômen SD', kind: 'rect', x: 101, y: 94, w: 20, h: 15, cx: 111, cy: 102 },
   { site: 'Abdômen ME', kind: 'rect', x: 79, y: 111, w: 20, h: 15, cx: 89, cy: 119 },
@@ -35,6 +33,29 @@ const ZONES: Zone[] = [
   { site: 'Coxa E', kind: 'rect', x: 78, y: 184, w: 17, h: 56, cx: 86, cy: 212 },
   { site: 'Coxa D', kind: 'rect', x: 105, y: 184, w: 17, h: 56, cx: 113, cy: 212 }
 ]
+
+// Na vista de costas, o lado esquerdo do usuário fica à DIREITA da tela.
+const BACK_ZONES: Zone[] = [
+  { site: 'Costas D', kind: 'rect', x: 79, y: 84, w: 20, h: 26, cx: 89, cy: 97 },
+  { site: 'Costas E', kind: 'rect', x: 101, y: 84, w: 20, h: 26, cx: 111, cy: 97 },
+  { site: 'Glúteo D', kind: 'rect', x: 80, y: 150, w: 19, h: 24, cx: 89, cy: 162 },
+  { site: 'Glúteo E', kind: 'rect', x: 101, y: 150, w: 19, h: 24, cx: 110, cy: 162 }
+]
+
+const SILHOUETTE = (
+  <g fill="url(#bodyfill)" stroke="#26364f" strokeWidth={1}>
+    <circle cx="100" cy="30" r="17" />
+    <rect x="94" y="44" width="12" height="12" rx="4" />
+    <path d="M70 60 Q100 52 130 60 L126 150 Q100 158 74 150 Z" />
+    <circle cx="72" cy="66" r="14" />
+    <circle cx="128" cy="66" r="14" />
+    <rect x="52" y="66" width="15" height="82" rx="7" />
+    <rect x="133" y="66" width="15" height="82" rx="7" />
+    <path d="M74 146 L126 146 L124 178 L76 178 Z" />
+    <rect x="76" y="172" width="21" height="104" rx="10" />
+    <rect x="103" y="172" width="21" height="104" rx="10" />
+  </g>
+)
 
 export function InjectionBodyMap({
   selected,
@@ -47,7 +68,7 @@ export function InjectionBodyMap({
   stats: Map<InjectionSite, SiteStat>
   suggested: Set<InjectionSite>
 }) {
-  function style(site: InjectionSite) {
+  function zoneStyle(site: InjectionSite) {
     const count = stats.get(site)?.count7d ?? 0
     if (site === selected) {
       return { fill: 'rgba(34,211,238,0.40)', stroke: '#22D3EE', sw: 2, dash: undefined }
@@ -69,36 +90,91 @@ export function InjectionBodyMap({
 
   return (
     <div>
-      <svg
-        viewBox="0 0 200 290"
-        className="w-full h-auto max-h-[240px]"
-        role="group"
-        aria-label="Mapa de locais de aplicação"
-      >
+      <div className="grid grid-cols-2 gap-2">
+        <Figure
+          label="FRENTE"
+          zones={FRONT_ZONES}
+          selected={selected}
+          onSelect={onSelect}
+          stats={stats}
+          zoneStyle={zoneStyle}
+        />
+        <Figure
+          label="COSTAS"
+          zones={BACK_ZONES}
+          selected={selected}
+          onSelect={onSelect}
+          stats={stats}
+          zoneStyle={zoneStyle}
+        />
+      </div>
+
+      {/* Legenda */}
+      <div className="flex items-center justify-center gap-4 mt-2">
+        <LegendDot className="border-cyan/60 bg-cyan/10" label="sugerido" />
+        <LegendDot className="border-danger/50 bg-danger/25" label="usado (7d)" />
+      </div>
+
+      {/* Botões-texto (todos os locais; toque preciso / acessibilidade) */}
+      <div className="grid grid-cols-3 gap-1.5 mt-3">
+        {INJECTION_SITES.map((s) => {
+          const count = stats.get(s)?.count7d ?? 0
+          return (
+            <button
+              key={s}
+              onClick={() => onSelect(s)}
+              className={`flex flex-col items-center rounded-lg border py-1.5 font-mono text-[8px] tracking-wide uppercase ${
+                s === selected
+                  ? 'border-cyan/70 bg-cyan/15 text-cyan'
+                  : suggested.has(s)
+                    ? 'border-cyan/30 text-ink'
+                    : 'border-border text-muted'
+              }`}
+            >
+              <span>{s}</span>
+              <span className="text-[7px] opacity-70">
+                {count > 0 ? `${count}×` : 'livre'}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function Figure({
+  label,
+  zones,
+  selected,
+  onSelect,
+  stats,
+  zoneStyle
+}: {
+  label: string
+  zones: Zone[]
+  selected: InjectionSite
+  onSelect: (s: InjectionSite) => void
+  stats: Map<InjectionSite, SiteStat>
+  zoneStyle: (s: InjectionSite) => {
+    fill: string
+    stroke: string
+    sw: number
+    dash: string | undefined
+  }
+}) {
+  return (
+    <div>
+      <svg viewBox="0 0 200 290" className="w-full h-auto max-h-[230px]">
         <defs>
           <linearGradient id="bodyfill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#16223a" />
             <stop offset="100%" stopColor="#0e1626" />
           </linearGradient>
         </defs>
-
-        {/* Silhueta preenchida */}
-        <g fill="url(#bodyfill)" stroke="#26364f" strokeWidth={1}>
-          <circle cx="100" cy="30" r="17" />
-          <rect x="94" y="44" width="12" height="12" rx="4" />
-          <path d="M70 60 Q100 52 130 60 L126 150 Q100 158 74 150 Z" />
-          <circle cx="72" cy="66" r="14" />
-          <circle cx="128" cy="66" r="14" />
-          <rect x="52" y="66" width="15" height="82" rx="7" />
-          <rect x="133" y="66" width="15" height="82" rx="7" />
-          <path d="M74 146 L126 146 L124 178 L76 178 Z" />
-          <rect x="76" y="172" width="21" height="104" rx="10" />
-          <rect x="103" y="172" width="21" height="104" rx="10" />
-        </g>
-
-        {/* Zonas interativas */}
-        {ZONES.map((z) => {
-          const s = style(z.site)
+        {SILHOUETTE}
+        {zones.map((z) => {
+          const s = zoneStyle(z.site)
           const count = stats.get(z.site)?.count7d ?? 0
           const common = {
             fill: s.fill,
@@ -137,36 +213,8 @@ export function InjectionBodyMap({
           )
         })}
       </svg>
-
-      {/* Legenda */}
-      <div className="flex items-center justify-center gap-4 mt-1">
-        <LegendDot className="border-cyan/60 bg-cyan/10" label="sugerido" />
-        <LegendDot className="border-danger/50 bg-danger/25" label="usado (7d)" />
-      </div>
-
-      {/* Botões-texto (todos os 12 locais; glúteos são vista traseira) */}
-      <div className="grid grid-cols-3 gap-1.5 mt-3">
-        {INJECTION_SITES.map((s) => {
-          const count = stats.get(s)?.count7d ?? 0
-          return (
-            <button
-              key={s}
-              onClick={() => onSelect(s)}
-              className={`flex flex-col items-center rounded-lg border py-1.5 font-mono text-[9px] tracking-wide uppercase ${
-                s === selected
-                  ? 'border-cyan/70 bg-cyan/15 text-cyan'
-                  : suggested.has(s)
-                    ? 'border-cyan/30 text-ink'
-                    : 'border-border text-muted'
-              }`}
-            >
-              <span>{s}</span>
-              <span className="text-[8px] opacity-70">
-                {count > 0 ? `${count}×` : 'livre'}
-              </span>
-            </button>
-          )
-        })}
+      <div className="text-center font-mono text-[9px] tracking-widest text-muted uppercase -mt-1">
+        {label}
       </div>
     </div>
   )
